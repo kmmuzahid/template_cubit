@@ -1,5 +1,4 @@
 import 'package:auto_route/annotations.dart';
-import 'package:core_kit/core_kit.dart';
 import 'package:cubit_template/config/bloc/cubit_scope.dart';
 import 'package:cubit_template/features/splash/cubit/splash_cubit.dart';
 import 'package:flutter/material.dart';
@@ -11,12 +10,13 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CkAppBar(),
       body: CubitScope(
         create: () => SplashCubit()..init(),
         builder: (context, cubit, state) {
           if (state) {
-            return CkLoader();
+            return Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            );
           } else {
             return SizedBox.shrink();
           }
