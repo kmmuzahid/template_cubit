@@ -1,0 +1,69 @@
+name: cubit_template
+description: "A new Flutter project."
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core_kit:
+  auto_route:
+  flutter_bloc:
+  get_it:
+  # flutter_secure_storage:
+  # shared_preferences:
+  equatable:
+  # pin_code_fields:
+  # video_player: ^2.11.0
+  # video_thumbnail:
+  #map
+  # google_maps_flutter:  
+  # flutter_polyline_points:  
+  # geolocator:
+  #widget_to_marker:
+  json_annotation:
+  json_serializable:
+  # socket_io_client: 
+  # flutter_local_notifications: ^21.0.0
+  # share_plus: ^13.1.0
+    # intl_utils:   # to generate from arb 
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # core_kit_lints:
+  #   path: ../core_kit/tools/custom_lint
+
+  flutter_lints:
+  build_runner:
+  auto_route_generator:
+  flutter_launcher_icons:
+  flutter_gen_runner:
+  change_app_package_name: ^1.5.0
+  rename_app: ^1.6.5
+
+# flutter_icons:
+#   android: true
+#   ios: true
+#   image_path: "assets/icon/icon.png" # your custom icon path
+
+flutter:
+  config:
+    enable-swift-package-manager: false
+    
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icon/
+
+  # fonts:
+  #   - family: PlayfairDisplay
+  #     fonts:
+  #       - asset: assets/fonts/PlayfairDisplay-Regular.ttf
+  #       - asset: assets/fonts/PlayfairDisplay-Italic.ttf
