@@ -104,7 +104,7 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
       showOtpVerification: () {
         CkDialog(
           context: appRouter.navigatorKey.currentContext!,
-          child: const OtpDialogContent(),
+          child: OtpDialogContent(),
         );
       },
       onAuthenticated: () {

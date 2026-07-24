@@ -3,21 +3,10 @@ import 'package:cubit_template/config/color/app_color.dart';
 import 'package:cubit_template/corekit_config_impl.dart';
 import 'package:flutter/material.dart';
 
-class OtpDialogContent extends StatefulWidget {
-  const OtpDialogContent({super.key});
+class OtpDialogContent extends StatelessWidget {
+  OtpDialogContent({super.key});
 
-  @override
-  State<OtpDialogContent> createState() => _OtpDialogContentState();
-}
-
-class _OtpDialogContentState extends State<OtpDialogContent> {
   final TextEditingController _otpController = TextEditingController();
-
-  @override
-  void dispose() {
-    _otpController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +145,7 @@ class _OtpDialogContentState extends State<OtpDialogContent> {
 
                         final result = await ckAuth.verifyOtp(otp: code);
                         if (result.isSuccess) {
-                          if (mounted) {
+                          if (context.mounted) {
                             Navigator.of(context).pop(); // close dialog
                           }
                           CkSnackBar('Verification successful!', type: CkSnackBarType.success);

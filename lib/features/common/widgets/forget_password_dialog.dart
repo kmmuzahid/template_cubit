@@ -5,22 +5,11 @@ import 'package:cubit_template/corekit_config_impl.dart';
 import 'package:cubit_template/features/common/widgets/otp_dialog.dart';
 import 'package:flutter/material.dart';
 
-class ForgetPasswordDialogContent extends StatefulWidget {
-  const ForgetPasswordDialogContent({super.key});
+class ForgetPasswordDialogContent extends StatelessWidget {
+  ForgetPasswordDialogContent({super.key});
 
-  @override
-  State<ForgetPasswordDialogContent> createState() => _ForgetPasswordDialogContentState();
-}
-
-class _ForgetPasswordDialogContentState extends State<ForgetPasswordDialogContent> {
   final TextEditingController _emailController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +115,7 @@ class _ForgetPasswordDialogContentState extends State<ForgetPasswordDialogConten
                             
                             final result = await ckAuth.sendOtp(identifier: email);
                             if (result.isSuccess) {
-                              if (mounted) {
+                              if (context.mounted) {
                                 Navigator.of(context).pop(); // Dismiss forgot password dialog
                               }
                               CkSnackBar('OTP Code sent successfully!', type: CkSnackBarType.success);
@@ -134,7 +123,7 @@ class _ForgetPasswordDialogContentState extends State<ForgetPasswordDialogConten
                               // Display the Verification Code dialog
                               CkDialog(
                                 context: appRouter.navigatorKey.currentContext!,
-                                child: const OtpDialogContent(),
+                                child: OtpDialogContent(),
                               );
                             } else {
                               CkSnackBar(result.message ?? 'Failed to send OTP', type: CkSnackBarType.error);

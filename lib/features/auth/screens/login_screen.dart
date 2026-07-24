@@ -108,7 +108,7 @@ class LoginScreen extends StatelessWidget {
                           onTap: () {
                             CkDialog(
                               context: context,
-                              child: const ForgetPasswordDialogContent(),
+                              child: ForgetPasswordDialogContent(),
                             );
                           },
                           child: CkText(
