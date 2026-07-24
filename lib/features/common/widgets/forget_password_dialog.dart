@@ -1,3 +1,4 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/color/app_color.dart';
 import 'package:cubit_template/corekit_config_impl.dart';
@@ -108,14 +109,14 @@ class ForgetPasswordDialogContent extends StatelessWidget {
                           buttonColor: colors.ratingPremiumTags_goldAccent,
                           titleColor: colors.bACKGROUND_darkPage,
                           buttonRadius: 24.w,
-                          onTap: () async {
+                          onTap: () {
                             if (formKey.validateAndSave()) {
                               final email =
                                   entity['email']?.toString().trim() ?? '';
-                              ckAuth.otpManager.lastTrigger =
-                                  CkOtpTrigger.forgetPassword;
 
-                              ckAuth.sendOtp(identifier: email);
+                              ckDebug('email: $email');
+                              context.pop();
+                              ckAuth.forgotPassword(body: {'email': email});
                             }
                           },
                         );

@@ -99,6 +99,7 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
         appRouter.replaceAll([const ResetPasswordRoute()]);
       },
       showOtpVerification: () {
+        ckDebug('dsafhasjdfhjdsfh');
         CkDialog(
           context: appRouter.navigatorKey.currentContext!,
           child: OtpDialogContent(),

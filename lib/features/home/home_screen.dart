@@ -13,6 +13,10 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
 
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      ckAuth.sendOtp(identifier: '');
+    });
+
     return AppScreenLayout(
       appBar: CkAppBar(
         title: 'Workspace',

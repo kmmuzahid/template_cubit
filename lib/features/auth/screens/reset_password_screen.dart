@@ -17,10 +17,7 @@ class ResetPasswordScreen extends StatelessWidget {
     final Map<String, dynamic> entityMap = {};
 
     return AppScreenLayout(
-      appBar: const CkAppBar(
-        title: 'Reset Password',
-        hideBack: true,
-      ),
+      appBar: const CkAppBar(title: 'Reset Password', hideBack: true),
       body: SingleChildScrollView(
         child: CkFormBuilder<Map<String, dynamic>>(
           entity: entityMap,
@@ -74,11 +71,7 @@ class ResetPasswordScreen extends StatelessWidget {
                       CkTextField(
                         hintText: 'Enter new password',
                         validationType: CkValidationType.validatePassword,
-                        prefixIcon: Icon(
-                          Icons.lock_outline,
-                          color: colors.tEXT_subDark,
-                          size: 20.w,
-                        ),
+
                         onChanged: (value) => entity['password'] = value,
                       ),
                       16.height,
@@ -94,13 +87,11 @@ class ResetPasswordScreen extends StatelessWidget {
                       8.height,
                       CkTextField(
                         hintText: 'Re-enter new password',
-                        validationType: CkValidationType.validateConfirmPassword,
-                        prefixIcon: Icon(
-                          Icons.lock_reset,
-                          color: colors.tEXT_subDark,
-                          size: 20.w,
-                        ),
-                        originalPassword: () => entity['password']?.toString() ?? '',
+                        validationType:
+                            CkValidationType.validateConfirmPassword,
+
+                        originalPassword: () =>
+                            entity['password']?.toString() ?? '',
                       ),
                       24.height,
 
@@ -117,15 +108,22 @@ class ResetPasswordScreen extends StatelessWidget {
                             titleColor: colors.bACKGROUND_darkPage,
                             onTap: () async {
                               if (formKey.validateAndSave()) {
-                                final pass = entity['password']?.toString() ?? '';
+                                final pass =
+                                    entity['password']?.toString() ?? '';
                                 final result = await ckAuth.updatePassword(
                                   body: {'password': pass},
                                 );
                                 if (result.isSuccess) {
-                                  CkSnackBar('Password reset successful!', type: CkSnackBarType.success);
+                                  CkSnackBar(
+                                    'Password reset successful!',
+                                    type: CkSnackBarType.success,
+                                  );
                                   appRouter.replaceAll([const LoginRoute()]);
                                 } else {
-                                  CkSnackBar(result.message ?? 'Reset failed', type: CkSnackBarType.error);
+                                  CkSnackBar(
+                                    result.message ?? 'Reset failed',
+                                    type: CkSnackBarType.error,
+                                  );
                                 }
                               }
                             },

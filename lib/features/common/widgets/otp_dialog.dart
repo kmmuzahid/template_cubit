@@ -23,7 +23,9 @@ class OtpDialogContent extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
-                color: colors.ratingPremiumTags_goldAccent.withValues(alpha: 0.1),
+                color: colors.ratingPremiumTags_goldAccent.withValues(
+                  alpha: 0.1,
+                ),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -47,7 +49,8 @@ class OtpDialogContent extends StatelessWidget {
 
           // Subtitle
           CkText(
-            text: 'Please enter the 6-digit verification code sent to your device.',
+            text:
+                'Please enter the 6-digit verification code sent to your device.',
             fontSize: 13,
             fontWeight: FontWeight.w400,
             textColor: colors.tEXT_subDark,
@@ -90,9 +93,15 @@ class OtpDialogContent extends StatelessWidget {
                     onTap: () async {
                       final result = await ckAuth.sendOtp();
                       if (result.isSuccess) {
-                        CkSnackBar('OTP Resent Successfully', type: CkSnackBarType.success);
+                        CkSnackBar(
+                          'OTP Resent Successfully',
+                          type: CkSnackBarType.success,
+                        );
                       } else {
-                        CkSnackBar(result.message ?? 'Failed to resend OTP', type: CkSnackBarType.error);
+                        CkSnackBar(
+                          result.message ?? 'Failed to resend OTP',
+                          type: CkSnackBarType.error,
+                        );
                       }
                     },
                     child: CkText(
@@ -139,7 +148,10 @@ class OtpDialogContent extends StatelessWidget {
                       onTap: () async {
                         final code = _otpController.text.trim();
                         if (code.length < 4) {
-                          CkSnackBar('Please enter a valid OTP', type: CkSnackBarType.warning);
+                          CkSnackBar(
+                            'Please enter a valid OTP',
+                            type: CkSnackBarType.warning,
+                          );
                           return;
                         }
 
@@ -148,9 +160,12 @@ class OtpDialogContent extends StatelessWidget {
                           if (context.mounted) {
                             Navigator.of(context).pop(); // close dialog
                           }
-                          CkSnackBar('Verification successful!', type: CkSnackBarType.success);
+                          ckAuth.verifyOtp(otp: code);
                         } else {
-                          CkSnackBar(result.message ?? 'Verification failed', type: CkSnackBarType.error);
+                          CkSnackBar(
+                            result.message ?? 'Verification failed',
+                            type: CkSnackBarType.error,
+                          );
                         }
                       },
                     );
