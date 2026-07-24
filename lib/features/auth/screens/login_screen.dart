@@ -61,7 +61,7 @@ class LoginScreen extends StatelessWidget {
                     children: [
                       // Username Field
                       CkText(
-                        text: 'Username',
+                        text: 'Email',
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         textColor: colors.tEXT_white,
@@ -69,8 +69,8 @@ class LoginScreen extends StatelessWidget {
                       ),
                       8.height,
                       CkTextField(
-                        hintText: 'Enter your username',
-                        validationType: CkValidationType.validateUsername,
+                        hintText: 'Enter your email',
+                        validationType: CkValidationType.validateEmail,
                         prefixIcon: Icon(
                           Icons.person_outline,
                           color: colors.tEXT_subDark,
