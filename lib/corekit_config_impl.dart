@@ -79,7 +79,11 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
       },
     ),
     otpConfig: CkOtpConfig(
-      autoTriggers: {CkOtpTrigger.signup, CkOtpTrigger.forgetPassword, CkOtpTrigger.login},
+      autoTriggers: {
+        CkOtpTrigger.signup,
+        CkOtpTrigger.forgetPassword,
+        CkOtpTrigger.login,
+      },
       verificationStrategy: CkOtpVerificationStrategy.tokenBased,
       verificationTokenHeaderKey: 'token',
       sendVerificationTokenInHeader: true,
@@ -98,13 +102,10 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
       //   );
       // },
       showOtpVerification: () {
-        final context = coreKitInstance.navigatorKey.currentContext;
-        if (context != null) {
-          CkDialog(
-            context: context,
-            child: const OtpDialogContent(),
-          );
-        }
+        CkDialog(
+          context: appRouter.navigatorKey.currentContext!,
+          child: const OtpDialogContent(),
+        );
       },
       onAuthenticated: () {
         ckApiDebug('authenticated');

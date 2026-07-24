@@ -6,6 +6,7 @@ import 'package:cubit_template/config/route/app_router.gr.dart';
 import 'package:cubit_template/corekit_config_impl.dart';
 import 'package:cubit_template/features/auth/entity/auth_entity.dart';
 import 'package:cubit_template/features/common/widgets/app_screen_layout.dart';
+import 'package:cubit_template/features/common/widgets/forget_password_dialog.dart';
 import 'package:flutter/material.dart';
 
 @RoutePage()
@@ -97,6 +98,26 @@ class LoginScreen extends StatelessWidget {
                           size: 20.w,
                         ),
                         onChanged: (value) => entity.password = value,
+                      ),
+                      12.height,
+
+                      // Forgot Password Link
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: () {
+                            CkDialog(
+                              context: context,
+                              child: const ForgetPasswordDialogContent(),
+                            );
+                          },
+                          child: CkText(
+                            text: 'Forgot Password?',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            textColor: colors.ratingPremiumTags_goldAccent,
+                          ),
+                        ),
                       ),
                       20.height,
 
