@@ -1,13 +1,17 @@
-import 'dart:ui';
-
 import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/api/api_end_point.dart';
+import 'package:cubit_template/config/route/app_router.dart';
+import 'package:cubit_template/config/route/app_router.gr.dart';
+import 'package:cubit_template/features/auth/model/profile_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-CkAuth ckAuth = CkAuth();
+CkAuth<ProfileModel> ckAuth = CkAuth();
 
 class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
+  @override
+  CkAppBarConfig? get appbarConfig => CkAppBarConfig(titleAlignment: .center);
+
   @override
   Size get designSize => const Size(428, 926);
 
@@ -35,7 +39,7 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
 
   @override
   CkAuthConfig get authConfig => CkAuthConfig(
-    // authEnable: false,
+    mockAuth: true,
     endpoints: CkAuthEndpoints(
       resetPassword: '',
       forgotPassword: '',
@@ -98,8 +102,14 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
       //     arguments: {'screen': "", 'email': ""},
       //   );
       // },
-      onAuthenticated: () {},
-      showLogin: () {},
+      onAuthenticated: () {
+        ckApiDebug('authenticated');
+        appRouter.replaceAll([HomeRoute()]);
+      },
+      showLogin: () {
+        ckApiDebug('showLogin');
+        appRouter.replaceAll([LoginRoute()]);
+      },
       // showOnboarding: () {
       //   Get.offAllNamed(AppRoute.onboardingscreen);
       // },
