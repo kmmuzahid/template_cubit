@@ -95,12 +95,9 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
       },
     ),
     handlers: CkAuthFlowHandlers(
-      // showResetPassword: () {
-      //   Get.offNamed(
-      //     AppRoute.changePasswrodScreen,
-      //     arguments: {'isForgetPassword': true},
-      //   );
-      // },
+      showResetPassword: () {
+        appRouter.replaceAll([const ResetPasswordRoute()]);
+      },
       showOtpVerification: () {
         CkDialog(
           context: appRouter.navigatorKey.currentContext!,

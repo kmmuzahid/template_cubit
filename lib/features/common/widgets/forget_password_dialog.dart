@@ -1,8 +1,6 @@
 import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/color/app_color.dart';
-import 'package:cubit_template/config/route/app_router.dart';
 import 'package:cubit_template/corekit_config_impl.dart';
-import 'package:cubit_template/features/common/widgets/otp_dialog.dart';
 import 'package:flutter/material.dart';
 
 class ForgetPasswordDialogContent extends StatelessWidget {
@@ -28,7 +26,9 @@ class ForgetPasswordDialogContent extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    color: colors.ratingPremiumTags_goldAccent.withValues(alpha: 0.1),
+                    color: colors.ratingPremiumTags_goldAccent.withValues(
+                      alpha: 0.1,
+                    ),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -52,7 +52,8 @@ class ForgetPasswordDialogContent extends StatelessWidget {
 
               // Subtitle
               CkText(
-                text: 'Enter your registered email address below to receive a verification OTP code.',
+                text:
+                    'Enter your registered email address below to receive a verification OTP code.',
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
                 textColor: colors.tEXT_subDark,
@@ -109,25 +110,12 @@ class ForgetPasswordDialogContent extends StatelessWidget {
                           buttonRadius: 24.w,
                           onTap: () async {
                             if (formKey.validateAndSave()) {
-                              final email = entity['email']?.toString().trim() ?? '';
-                              // Set last trigger to forgetPassword so verify/resend OTP knows the context
-                              ckAuth.otpManager.lastTrigger = CkOtpTrigger.forgetPassword;
-                              
-                              final result = await ckAuth.sendOtp(identifier: email);
-                              if (result.isSuccess) {
-                                if (context.mounted) {
-                                  Navigator.of(context).pop(); // Dismiss forgot password dialog
-                                }
-                                CkSnackBar('OTP Code sent successfully!', type: CkSnackBarType.success);
-                                
-                                // Display the Verification Code dialog
-                                CkDialog(
-                                  context: appRouter.navigatorKey.currentContext!,
-                                  child: OtpDialogContent(),
-                                );
-                              } else {
-                                CkSnackBar(result.message ?? 'Failed to send OTP', type: CkSnackBarType.error);
-                              }
+                              final email =
+                                  entity['email']?.toString().trim() ?? '';
+                              ckAuth.otpManager.lastTrigger =
+                                  CkOtpTrigger.forgetPassword;
+
+                              ckAuth.sendOtp(identifier: email);
                             }
                           },
                         );
