@@ -2,15 +2,14 @@ import 'package:auto_route/annotations.dart';
 import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/color/app_color.dart';
 import 'package:cubit_template/config/route/app_router.dart';
-import 'package:cubit_template/config/route/app_router.gr.dart';
 import 'package:cubit_template/corekit_config_impl.dart';
-import 'package:cubit_template/features/auth/entity/auth_entity.dart';
+import 'package:cubit_template/features/auth/entity/signup_entity.dart';
 import 'package:cubit_template/features/common/widgets/app_screen_layout.dart';
 import 'package:flutter/material.dart';
 
 @RoutePage()
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class SignUpScreen extends StatelessWidget {
+  const SignUpScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,20 +17,19 @@ class LoginScreen extends StatelessWidget {
 
     return AppScreenLayout(
       appBar: const CkAppBar(
-        title: 'Sign In',
-        hideBack: true,
+        title: 'Create Account',
       ),
       body: SingleChildScrollView(
         child: CkFormBuilder(
-          entity: AuthEntity(),
+          entity: SignUpEntity(),
           builder: (_, formKey, entity) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                20.height,
+                10.height,
                 // Greeting header
                 CkText(
-                  text: 'Welcome Back',
+                  text: 'Join Us Today',
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
                   textColor: colors.tEXT_white,
@@ -39,13 +37,14 @@ class LoginScreen extends StatelessWidget {
                 ),
                 8.height,
                 CkText(
-                  text: 'Enter your credentials to access your workspace',
+                  text: 'Create a new account using our production-ready CoreKit modules.',
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   textColor: colors.tEXT_subDark,
                   textAlign: TextAlign.left,
+                  isDescription: true,
                 ),
-                30.height,
+                20.height,
 
                 // Content Card
                 Container(
@@ -71,7 +70,7 @@ class LoginScreen extends StatelessWidget {
                       ),
                       8.height,
                       CkTextField(
-                        hintText: 'Enter your username',
+                        hintText: 'Choose a username',
                         validationType: CkValidationType.validateUsername,
                         prefixIcon: Icon(
                           Icons.person_outline,
@@ -79,6 +78,27 @@ class LoginScreen extends StatelessWidget {
                           size: 20.w,
                         ),
                         onSaved: (value, controller) => entity.username = value,
+                      ),
+                      16.height,
+
+                      // Email Field
+                      CkText(
+                        text: 'Email Address',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        textColor: colors.tEXT_white,
+                        textAlign: TextAlign.left,
+                      ),
+                      8.height,
+                      CkTextField(
+                        hintText: 'Enter your email',
+                        validationType: CkValidationType.validateEmail,
+                        prefixIcon: Icon(
+                          Icons.email_outlined,
+                          color: colors.tEXT_subDark,
+                          size: 20.w,
+                        ),
+                        onSaved: (value, controller) => entity.email = value,
                       ),
                       16.height,
 
@@ -92,7 +112,7 @@ class LoginScreen extends StatelessWidget {
                       ),
                       8.height,
                       CkTextField(
-                        hintText: 'Enter your password',
+                        hintText: 'Create a password',
                         validationType: CkValidationType.validatePassword,
                         prefixIcon: Icon(
                           Icons.lock_outline,
@@ -103,43 +123,73 @@ class LoginScreen extends StatelessWidget {
                       ),
                       16.height,
 
-                      // Confirm Password Field
+                      // Phone Number Field (CoreKit Custom Widget)
                       CkText(
-                        text: 'Confirm Password',
+                        text: 'Phone Number',
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         textColor: colors.tEXT_white,
                         textAlign: TextAlign.left,
                       ),
                       8.height,
-                      CkTextField(
-                        hintText: 'Re-enter your password',
-                        validationType: CkValidationType.validateConfirmPassword,
+                      CkPhoneNumberTextField(
+                        textInputAction: TextInputAction.next,
+                        borderColor: colors.bACKGROUND_darkCardBoarder,
+                        initalCountryCode: 'US',
+                        countryChange: (phone) {
+                          entity.phoneNumber = phone;
+                        },
+                        onChanged: (phone) {
+                          entity.phoneNumber = phone;
+                        },
+                      ),
+                      16.height,
+
+                      // Date of Birth Field (CoreKit DatePicker Input)
+                      CkText(
+                        text: 'Date of Birth',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        textColor: colors.tEXT_white,
+                        textAlign: TextAlign.left,
+                      ),
+                      8.height,
+                      CkDateInputTextField(
+                        hints: 'Select your birthday',
                         prefixIcon: Icon(
-                          Icons.lock_reset,
+                          Icons.calendar_today_outlined,
                           color: colors.tEXT_subDark,
-                          size: 20.w,
+                          size: 18.w,
                         ),
-                        originalPassword: () => entity.password ?? '',
+                        onChanged: (date) {
+                          entity.dateOfBirth = date;
+                        },
                       ),
                       24.height,
 
-                      // Login Button
+                      // Signup Button
                       ckAuth.loadingUi(
-                        type: CkAuthLoadingType.signIn,
+                        type: CkAuthLoadingType.signUp,
                         builder: (isLoading) {
                           return CkButton(
-                            titleText: 'Sign In',
+                            titleText: 'Register',
                             isLoading: isLoading,
                             buttonRadius: 30.w,
                             titleWeight: FontWeight.w600,
                             buttonColor: colors.ratingPremiumTags_goldAccent,
                             titleColor: colors.bACKGROUND_darkPage,
                             onTap: () {
-                              ckAuth.signIn(
-                                username: entity.username ?? '',
-                                password: entity.password ?? '',
-                              );
+                              if (formKey.validateAndSave()) {
+                                ckAuth.signUp(
+                                  body: {
+                                    'username': entity.username ?? '',
+                                    'email': entity.email ?? '',
+                                    'password': entity.password ?? '',
+                                    'phone': entity.phoneNumber?.completeNumber ?? '',
+                                    'dateOfBirth': entity.dateOfBirth?.toIso8601String() ?? '',
+                                  },
+                                );
+                              }
                             },
                           );
                         },
@@ -149,17 +199,17 @@ class LoginScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           CkText(
-                            text: "Don't have an account?",
+                            text: 'Already have an account?',
                             fontSize: 13,
                             textColor: colors.tEXT_subDark,
                           ),
                           4.width,
                           GestureDetector(
                             onTap: () {
-                              appRouter.push(const SignUpRoute());
+                              appRouter.pop();
                             },
                             child: CkText(
-                              text: 'Sign Up',
+                              text: 'Sign In',
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               textColor: colors.ratingPremiumTags_goldAccent,
@@ -170,6 +220,7 @@ class LoginScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                30.height,
               ],
             );
           },
@@ -178,4 +229,3 @@ class LoginScreen extends StatelessWidget {
     );
   }
 }
-
