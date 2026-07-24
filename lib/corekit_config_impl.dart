@@ -3,6 +3,7 @@ import 'package:cubit_template/config/api/api_end_point.dart';
 import 'package:cubit_template/config/route/app_router.dart';
 import 'package:cubit_template/config/route/app_router.gr.dart';
 import 'package:cubit_template/features/auth/model/profile_model.dart';
+import 'package:cubit_template/features/common/widgets/otp_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -78,7 +79,7 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
       },
     ),
     otpConfig: CkOtpConfig(
-      autoTriggers: {CkOtpTrigger.signup, .forgetPassword, .login},
+      autoTriggers: {CkOtpTrigger.signup, CkOtpTrigger.forgetPassword, CkOtpTrigger.login},
       verificationStrategy: CkOtpVerificationStrategy.tokenBased,
       verificationTokenHeaderKey: 'token',
       sendVerificationTokenInHeader: true,
@@ -96,12 +97,15 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
       //     arguments: {'isForgetPassword': true},
       //   );
       // },
-      // showOtpVerification: () {
-      //   Get.toNamed(
-      //     AppRoute.otpVerificationScreen,
-      //     arguments: {'screen': "", 'email': ""},
-      //   );
-      // },
+      showOtpVerification: () {
+        final context = coreKitInstance.navigatorKey.currentContext;
+        if (context != null) {
+          CkDialog(
+            context: context,
+            child: const OtpDialogContent(),
+          );
+        }
+      },
       onAuthenticated: () {
         ckApiDebug('authenticated');
         appRouter.replaceAll([HomeRoute()]);

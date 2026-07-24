@@ -16,9 +16,7 @@ class SignUpScreen extends StatelessWidget {
     final colors = context.colors;
 
     return AppScreenLayout(
-      appBar: const CkAppBar(
-        title: 'Create Account',
-      ),
+      appBar: const CkAppBar(title: 'Create Account'),
       body: SingleChildScrollView(
         child: CkFormBuilder(
           entity: SignUpEntity(),
@@ -37,7 +35,8 @@ class SignUpScreen extends StatelessWidget {
                 ),
                 8.height,
                 CkText(
-                  text: 'Create a new account using our production-ready CoreKit modules.',
+                  text:
+                      'Create a new account using our production-ready CoreKit modules.',
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   textColor: colors.tEXT_subDark,
@@ -114,12 +113,23 @@ class SignUpScreen extends StatelessWidget {
                       CkTextField(
                         hintText: 'Create a password',
                         validationType: CkValidationType.validatePassword,
-                        prefixIcon: Icon(
-                          Icons.lock_outline,
-                          color: colors.tEXT_subDark,
-                          size: 20.w,
-                        ),
                         onChanged: (value) => entity.password = value,
+                      ),
+                      16.height,
+                      // Password Field
+                      CkText(
+                        text: 'Confirm Password',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        textColor: colors.tEXT_white,
+                        textAlign: TextAlign.left,
+                      ),
+                      8.height,
+                      CkTextField(
+                        hintText: 'Confirm Password',
+                        validationType:
+                            CkValidationType.validateConfirmPassword,
+                        originalPassword: () => entity.password ?? "",
                       ),
                       16.height,
 
@@ -137,10 +147,10 @@ class SignUpScreen extends StatelessWidget {
                         borderColor: colors.bACKGROUND_darkCardBoarder,
                         initalCountryCode: 'US',
                         countryChange: (phone) {
-                          entity.phoneNumber = phone;
+                          entity.phoneNumber = phone.completeNumber;
                         },
                         onChanged: (phone) {
-                          entity.phoneNumber = phone;
+                          entity.phoneNumber = phone.completeNumber;
                         },
                       ),
                       16.height,
@@ -185,8 +195,10 @@ class SignUpScreen extends StatelessWidget {
                                     'username': entity.username ?? '',
                                     'email': entity.email ?? '',
                                     'password': entity.password ?? '',
-                                    'phone': entity.phoneNumber?.completeNumber ?? '',
-                                    'dateOfBirth': entity.dateOfBirth?.toIso8601String() ?? '',
+                                    'phone': entity.phoneNumber ?? '',
+                                    'dateOfBirth':
+                                        entity.dateOfBirth?.toIso8601String() ??
+                                        '',
                                   },
                                 );
                               }

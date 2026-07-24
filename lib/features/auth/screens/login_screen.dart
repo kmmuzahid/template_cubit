@@ -17,10 +17,7 @@ class LoginScreen extends StatelessWidget {
     final colors = context.colors;
 
     return AppScreenLayout(
-      appBar: const CkAppBar(
-        title: 'Sign In',
-        hideBack: true,
-      ),
+      appBar: const CkAppBar(title: 'Sign In', hideBack: true),
       body: SingleChildScrollView(
         child: CkFormBuilder(
           entity: AuthEntity(),
@@ -101,28 +98,7 @@ class LoginScreen extends StatelessWidget {
                         ),
                         onChanged: (value) => entity.password = value,
                       ),
-                      16.height,
-
-                      // Confirm Password Field
-                      CkText(
-                        text: 'Confirm Password',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        textColor: colors.tEXT_white,
-                        textAlign: TextAlign.left,
-                      ),
-                      8.height,
-                      CkTextField(
-                        hintText: 'Re-enter your password',
-                        validationType: CkValidationType.validateConfirmPassword,
-                        prefixIcon: Icon(
-                          Icons.lock_reset,
-                          color: colors.tEXT_subDark,
-                          size: 20.w,
-                        ),
-                        originalPassword: () => entity.password ?? '',
-                      ),
-                      24.height,
+                      20.height,
 
                       // Login Button
                       ckAuth.loadingUi(
@@ -136,10 +112,12 @@ class LoginScreen extends StatelessWidget {
                             buttonColor: colors.ratingPremiumTags_goldAccent,
                             titleColor: colors.bACKGROUND_darkPage,
                             onTap: () {
-                              ckAuth.signIn(
-                                username: entity.username ?? '',
-                                password: entity.password ?? '',
-                              );
+                              if (formKey.validateAndSave()) {
+                                ckAuth.signIn(
+                                  username: entity.username ?? '',
+                                  password: entity.password ?? '',
+                                );
+                              }
                             },
                           );
                         },
@@ -178,4 +156,3 @@ class LoginScreen extends StatelessWidget {
     );
   }
 }
-
