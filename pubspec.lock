@@ -245,10 +245,10 @@ packages:
     dependency: "direct main"
     description:
       name: core_kit
-      sha256: "8f0b106f786c5dc49bcbd1f18f969c32003bb70c288603a95140ad96943dfbe0"
+      sha256: f3f7571dd6fc76df1a0f078234488fd68b081039c2a8df1934ca4b6994b85218
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.6"
+    version: "1.0.6+1"
   cross_file:
     dependency: transitive
     description:

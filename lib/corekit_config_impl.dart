@@ -79,11 +79,7 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
       },
     ),
     otpConfig: CkOtpConfig(
-      autoTriggers: {
-        CkOtpTrigger.signup,
-        CkOtpTrigger.forgetPassword,
-        CkOtpTrigger.login,
-      },
+      autoTriggers: {CkOtpTrigger.signup, CkOtpTrigger.forgetPassword},
       resendCooldown: Duration(seconds: 60),
       verificationStrategy: CkOtpVerificationStrategy.tokenBased,
       verificationTokenHeaderKey: 'token',

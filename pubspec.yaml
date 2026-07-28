@@ -9,8 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  core_kit: 
-  auto_route:
+  core_kit: ^1.0.6+1
+  auto_route: 
   flutter_bloc:
   get_it:
   # flutter_secure_storage:
