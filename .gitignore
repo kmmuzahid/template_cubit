@@ -1,0 +1,74 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+
+# Environment & Secrets
+.env
+.env.*
+*.env
+!.env.example
+
+# IDE files
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# Flutter / Dart / Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Android specific
+/android/.gradle/
+/android/.kotlin/
+/android/local.properties
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+/android/key.properties
+*.jks
+*.keystore
+
+# iOS / macOS specific
+/ios/Runner/GeneratedPluginRegistrant.h
+/ios/Runner/GeneratedPluginRegistrant.m
+/ios/Flutter/App.framework
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/app.flttmp
+/ios/Flutter/ephemeral/
+/ios/Flutter/flutter_export_environment.sh
+/ios/Pods/
+/ios/Podfile.lock
+/macos/Flutter/ephemeral/
+
+# Linux / Windows specific
+/linux/flutter/ephemeral/
+/windows/flutter/ephemeral/
+
+# FVM (Flutter Version Management)
+.fvm/flutter_sdk
+.fvm/versions/
+
+# Temporary files
+temp_auto_push.bat
+temp_interactive_push.bat
+branch_structure.json
