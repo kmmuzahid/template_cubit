@@ -14,6 +14,36 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
   CkAppBarConfig? get appbarConfig => CkAppBarConfig(titleAlignment: .center);
 
   @override
+  CkInputConfig? get inputConfig => const CkInputConfig(
+    // hintStyle: TextStyle(...),
+    // textStyle: TextStyle(...),
+    // fontSize: 16,
+    // textAlign: TextAlign.left,
+    // borderColor: Colors.grey,
+    // borderRadius: 12,
+    // borderWidth: 1.2,
+    // backgroundColor: Colors.white,
+    // enableCapitalization: true,
+  );
+
+  @override
+  CkSnackBarConfig? get snackBarConfig => const CkSnackBarConfig(
+    // position: CkSnackBarPosition.top,
+    // borderRadius: 12,
+    // backgroundColor: Colors.white,
+    // margin: EdgeInsets.all(16),
+    // padding: EdgeInsets.symmetric(horizontal: 5, vertical: 10),
+    // textStyle: TextStyle(...),
+    // borderWidthLeft: 10,
+    // borderWidthOthers: 1,
+    // iconSize: 24,
+    // successColor: Colors.green,
+    // errorColor: Colors.red,
+    // warningColor: Colors.orange,
+    // infoColor: Colors.blue,
+  );
+
+  @override
   Size get designSize => const Size(428, 926);
 
   @override
