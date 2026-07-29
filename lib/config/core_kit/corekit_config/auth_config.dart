@@ -15,10 +15,11 @@ mixin AuthConfig on CoreKitConfig {
   CkAuthConfig get authConfig => CkAuthConfig(
     mockAuth: true,
     endpoints: _endpoints(),
+
     loginBodyBuilder: (LoginCallback loginCallBack) {
       return {
         'email': loginCallBack.username,
-        'password': loginCallBack.extras?['dd'],
+        'password': loginCallBack.password,
       };
     },
     extractors: _extractors(),
