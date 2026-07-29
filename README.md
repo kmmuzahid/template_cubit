@@ -28,17 +28,12 @@ lib/
 │   ├── color/        # ThemeColor styling & extensions (Dark/Light configurations)
 │   ├── dependency/   # GetIt locator configurations
 │   ├── route/        # AutoRoute definitions, observers, and navigation guards
-│   └── theme/        # Custom ThemeData configurations, fonts, and theme-switching Cubits
+│   ├── theme/        # Custom ThemeData configurations, fonts, and theme-switching Cubits
+│   └── core_kit/     # Modular CoreKit configuration files and AppCoreKitConfig
 │
 ├── features/         # Modular feature-by-feature layout
-│   ├── auth/         # Authentication flow: Screen, models, entities, and helper logic
-│   ├── home/         # Home/Dashboard screen and dashboard widgets
-│   ├── splash/       # Launch splash screen, timers, and initial checks
-│   └── common/       # Shared project-wide widgets (e.g. AppScreenLayout)
-│
-├── corekit_config_impl.dart  # Custom implementations and hooks for CoreKit bootstrapping
 ├── my_app.dart               # Theme setup, MultiBlocProvider setup, and MaterialApp registration
-└── main.dart                 # Application entry point
+├── main.dart                 # Application entry point
 ```
 
 ---
@@ -46,7 +41,7 @@ lib/
 ## 🔧 CoreKit Integration
 
 ### 1. Bootstrapping Configurations
-`CorekitConfigImpl` extends `CoreKitConfig` and implements all global parameters required for networking, design dimensions, and splash delay:
+`AppCoreKitConfig` extends `CoreKitConfig` and implements all global parameters required for networking, design dimensions, and splash delay:
 - **`appbarConfig`**: Standardized default app bar alignments (e.g., center alignment).
 - **`designSize`**: Base resolution for responsive scaling (default: `428 x 926`).
 - **`ckTransportConfig`**: Base URLs and debug options for API networking.
@@ -54,7 +49,7 @@ lib/
 
 ### 2. Global Authentication Flow
 The package auto-manages authentication states dynamically:
-- Upon loading, CoreKit checks credentials via `CkAuthService` and invokes handlers defined in `CorekitConfigImpl`:
+- Upon loading, CoreKit checks credentials via `CkAuthService` and invokes handlers defined in `AppCoreKitConfig`:
   - **`onAuthenticated`**: Invoked on success, redirecting to `HomeRoute()`.
   - **`showLogin`**: Invoked if credentials are missing or expired, redirecting to `LoginRoute()`.
 

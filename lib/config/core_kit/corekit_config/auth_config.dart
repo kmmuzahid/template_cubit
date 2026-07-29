@@ -1,73 +1,16 @@
-import 'package:core_kit/core_kit_internal.dart';
-import 'package:cubit_template/config/api/api_end_point.dart';
+import 'package:core_kit/auth/ck_auth_config.dart';
+import 'package:core_kit/auth/ck_auth_endpoints.dart';
+import 'package:core_kit/auth/ck_auth_extractors.dart';
+import 'package:core_kit/auth/ck_auth_flow_handlers.dart';
+import 'package:core_kit/auth/otp/otp_config.dart';
+import 'package:core_kit/dialog/ck_dialog.dart';
+import 'package:core_kit/initializer.dart';
+import 'package:core_kit/utils/ck_logger.dart';
 import 'package:cubit_template/config/route/app_router.dart';
 import 'package:cubit_template/config/route/app_router.gr.dart';
-import 'package:cubit_template/features/auth/model/profile_model.dart';
 import 'package:cubit_template/features/common/widgets/otp_dialog.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
-CkAuth<ProfileModel> ckAuth = CkAuth();
-
-class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
-  @override
-  CkAppBarConfig? get appbarConfig => CkAppBarConfig(titleAlignment: .center);
-
-  @override
-  CkInputConfig? get inputConfig => const CkInputConfig(
-    // hintStyle: TextStyle(...),
-    // textStyle: TextStyle(...),
-    // fontSize: 16,
-    // textAlign: TextAlign.left,
-    // borderColor: Colors.grey,
-    // borderRadius: 12,
-    // borderWidth: 1.2,
-    // backgroundColor: Colors.white,
-    // enableCapitalization: true,
-  );
-
-  @override
-  CkSnackBarConfig? get snackBarConfig => const CkSnackBarConfig(
-    // position: CkSnackBarPosition.top,
-    // borderRadius: 12,
-    // backgroundColor: Colors.white,
-    // margin: EdgeInsets.all(16),
-    // padding: EdgeInsets.symmetric(horizontal: 5, vertical: 10),
-    // textStyle: TextStyle(...),
-    // borderWidthLeft: 10,
-    // borderWidthOthers: 1,
-    // iconSize: 24,
-    // successColor: Colors.green,
-    // errorColor: Colors.red,
-    // warningColor: Colors.orange,
-    // infoColor: Colors.blue,
-  );
-
-  @override
-  Size get designSize => const Size(428, 926);
-
-  @override
-  String get imageBaseUrl => ApiEndPoint.domain;
-
-  /// Disable enforced splash delay for faster navigation
-  @override
-  int get splashDelayMs => 3000;
-
-  /// Custom initialization tasks run during the 3-second splash delay.
-  /// Use this to register dependencies, initialize services, etc.
-  @override
-  Future<void> Function()? get onInit => () async {
-    //if app installed first time then delete.
-    //save it in flutter shared preferese.
-  };
-
-  @override
-  CkTransportConfig get ckTransportConfig => CkTransportConfig(
-    baseUrl: ApiEndPoint.baseUrl,
-    refreshTokenEndpoint: '',
-    enableDebugLogs: kDebugMode,
-  );
-
+mixin AuthConfig on CoreKitConfig {
   @override
   CkAuthConfig get authConfig => CkAuthConfig(
     mockAuth: true,
@@ -97,7 +40,6 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
       refreshToken: (data) => data['refreshToken']?.toString(),
       resetPasswordToken: (data) => data['forgetOtpMatchToken']?.toString(),
       profile: (data) {
-        // final profile = ProfileData.fromJson(data);
         return data;
       },
       message: (data) => data['message']?.toString(),
@@ -140,9 +82,6 @@ class CorekitConfigImpl extends CoreKitConfig with CoreKitConfigDefaults {
         ckApiDebug('showLogin');
         appRouter.replaceAll([LoginRoute()]);
       },
-      // showOnboarding: () {
-      //   Get.offAllNamed(AppRoute.onboardingscreen);
-      // },
     ),
   );
 }
