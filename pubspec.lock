@@ -244,11 +244,10 @@ packages:
   core_kit:
     dependency: "direct main"
     description:
-      name: core_kit
-      sha256: "94276f13179887ea06db606b74217d0a91907023685143ed29eb177676e9c0e9"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.6+3"
+      path: "/Users/username/Documents/km muzahid/flutter_core_kit"
+      relative: false
+    source: path
+    version: "1.0.6+4"
   cross_file:
     dependency: transitive
     description:

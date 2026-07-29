@@ -14,7 +14,20 @@ mixin AuthConfig on CoreKitConfig {
   @override
   CkAuthConfig get authConfig => CkAuthConfig(
     mockAuth: true,
-    endpoints: CkAuthEndpoints(
+    endpoints: _endpoints(),
+    loginBodyBuilder: (LoginCallback loginCallBack) {
+      return {
+        'email': loginCallBack.username,
+        'password': loginCallBack.extras?['dd'],
+      };
+    },
+    extractors: _extractors(),
+    otpConfig: _otpConfig(),
+    handlers: _authFlowHandlers(),
+  );
+
+  CkAuthEndpoints _endpoints() {
+    return CkAuthEndpoints(
       resetPassword: '',
       forgotPassword: '',
       signup: '',
@@ -28,14 +41,11 @@ mixin AuthConfig on CoreKitConfig {
       resetPasswordMethod: .PATCH,
       verifyForgotOtpMethod: .PATCH,
       sendOtpMethod: .PATCH,
-    ),
-    loginBodyBuilder: (LoginCallback loginCallBack) {
-      return {
-        'email': loginCallBack.username,
-        'password': loginCallBack.password,
-      };
-    },
-    extractors: CkAuthExtractors(
+    );
+  }
+
+  CkAuthExtractors _extractors() {
+    return CkAuthExtractors(
       accessToken: (data) => data['accessToken']?.toString(),
       refreshToken: (data) => data['refreshToken']?.toString(),
       resetPasswordToken: (data) => data['forgetOtpMatchToken']?.toString(),
@@ -49,21 +59,11 @@ mixin AuthConfig on CoreKitConfig {
         CkOtpTrigger.login: (data) => data['loginUserToken']?.toString(),
         CkOtpTrigger.forgetPassword: (data) => data['forgetToken']?.toString(),
       },
-    ),
-    otpConfig: CkOtpConfig(
-      autoTriggers: {CkOtpTrigger.signup, CkOtpTrigger.forgetPassword},
-      resendCooldown: Duration(seconds: 60),
-      verificationStrategy: CkOtpVerificationStrategy.tokenBased,
-      verificationTokenHeaderKey: 'token',
-      sendVerificationTokenInHeader: true,
-      verifyBodyBuilder: (ctx) async {
-        return {"otp": ctx.otp};
-      },
-      resendBodyBuilder: (ctx) {
-        return {"email": ctx.identifier};
-      },
-    ),
-    handlers: CkAuthFlowHandlers(
+    );
+  }
+
+  CkAuthFlowHandlers _authFlowHandlers() {
+    return CkAuthFlowHandlers(
       showResetPassword: () {
         appRouter.replaceAll([const ResetPasswordRoute()]);
       },
@@ -82,6 +82,22 @@ mixin AuthConfig on CoreKitConfig {
         ckApiDebug('showLogin');
         appRouter.replaceAll([LoginRoute()]);
       },
-    ),
-  );
+    );
+  }
+
+  CkOtpConfig _otpConfig() {
+    return CkOtpConfig(
+      autoTriggers: {CkOtpTrigger.signup, CkOtpTrigger.forgetPassword},
+      resendCooldown: Duration(seconds: 60),
+      verificationStrategy: CkOtpVerificationStrategy.tokenBased,
+      verificationTokenHeaderKey: 'token',
+      sendVerificationTokenInHeader: true,
+      verifyBodyBuilder: (ctx) async {
+        return {"otp": ctx.otp};
+      },
+      resendBodyBuilder: (ctx) {
+        return {"email": ctx.identifier};
+      },
+    );
+  }
 }

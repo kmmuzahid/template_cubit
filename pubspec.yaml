@@ -9,7 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  core_kit: ^1.0.6+3
+  # core_kit: ^1.0.6+3
+  core_kit:
+    path: /Users/username/Documents/km muzahid/flutter_core_kit
+  
   auto_route: 
   flutter_bloc:
   get_it:
