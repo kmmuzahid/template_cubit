@@ -1,8 +1,8 @@
 import 'package:auto_route/annotations.dart';
 import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/color/app_color.dart';
-import 'package:cubit_template/config/route/app_router.dart';
 import 'package:cubit_template/config/core_kit/core_kit_config.dart';
+import 'package:cubit_template/config/route/app_router.dart';
 import 'package:cubit_template/features/auth/entity/signup_entity.dart';
 import 'package:cubit_template/features/common/widgets/app_screen_layout.dart';
 import 'package:flutter/material.dart';
@@ -200,6 +200,13 @@ class SignUpScreen extends StatelessWidget {
                                         entity.dateOfBirth?.toIso8601String() ??
                                         '',
                                   },
+                                  //assume backend is not send access token and refresh token on signup, send it after login api call
+                                  // this will call login api after signup api call
+                                  // and store access token and refresh token
+                                  loginCallback: LoginCallback(
+                                    account: entity.email ?? '',
+                                    password: entity.password ?? '',
+                                  ),
                                 );
                               }
                             },

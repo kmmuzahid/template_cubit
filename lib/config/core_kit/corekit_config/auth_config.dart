@@ -16,11 +16,13 @@ mixin AuthConfig on CoreKitConfig {
     mockAuth: true,
     endpoints: _endpoints(),
 
-    loginBodyBuilder: (LoginCallback loginCallBack) {
-      return {
-        'email': loginCallBack.username,
-        'password': loginCallBack.password,
-      };
+    loginRequestBuilder: (LoginCallback loginCallBack) {
+      return CkLoginRequest(
+        body: {
+          'email': loginCallBack.account,
+          'password': loginCallBack.password,
+        },
+      );
     },
     extractors: _extractors(),
     otpConfig: _otpConfig(),
@@ -97,7 +99,7 @@ mixin AuthConfig on CoreKitConfig {
         return {"otp": ctx.otp};
       },
       resendBodyBuilder: (ctx) {
-        return {"email": ctx.identifier};
+        return {"email": ctx.recipient};
       },
     );
   }
