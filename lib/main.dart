@@ -2,7 +2,7 @@ import 'package:cubit_template/config/bloc/app_bloc_observer.dart';
 import 'package:cubit_template/config/dependency/dependency_injection.dart';
 import 'package:cubit_template/my_app..dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() async {

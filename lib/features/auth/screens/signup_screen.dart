@@ -3,9 +3,11 @@ import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/color/app_color.dart';
 import 'package:cubit_template/config/core_kit/core_kit_config.dart';
 import 'package:cubit_template/config/route/app_router.dart';
+import 'package:cubit_template/config/route/app_router.gr.dart';
 import 'package:cubit_template/features/auth/entity/signup_entity.dart';
 import 'package:cubit_template/features/common/widgets/app_screen_layout.dart';
-import 'package:flutter/material.dart';
+import 'package:cubit_template/features/info/cubit/info_state.dart';
+import 'package:material_ui/material_ui.dart';
 
 @RoutePage()
 class SignUpScreen extends StatelessWidget {
@@ -35,8 +37,7 @@ class SignUpScreen extends StatelessWidget {
                 ),
                 8.height,
                 CkText(
-                  text:
-                      'Create a new account using our production-ready CoreKit modules.',
+                  text: 'Create a new account using our production-ready CoreKit modules.',
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   textColor: colors.tEXT_subDark,
@@ -59,6 +60,12 @@ class SignUpScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      CkImagePicker(
+                        width: 120,
+                        height: 120,
+                        borderRadius: 120,
+                        onSaved: (p0) {},
+                      ).center,
                       // Username Field
                       CkText(
                         text: 'Username',
@@ -236,10 +243,61 @@ class SignUpScreen extends StatelessWidget {
                           ),
                         ],
                       ),
+                      20.height,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Privacy Policy Link
+                          GestureDetector(
+                            onTap: () {
+                              appRouter.push(
+                                InfoRoute(type: InfoType.privacyPolicy),
+                              );
+                            },
+                            child: CkText(
+                              text: 'Privacy Policy',
+                              style: TextStyle(
+                                decoration: .underline,
+                                decorationColor: colors.sTATUS_success,
+                              ),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              textColor: colors.sTATUS_success,
+                            ),
+                          ),
+                          12.width,
+                          CkText(
+                            text: 'and',
+                            fontSize: 12,
+                            textColor: colors.tEXT_subDark,
+                          ),
+                          12.width,
+                          // Terms & Conditions Link
+                          GestureDetector(
+                            onTap: () {
+                              appRouter.push(
+                                InfoRoute(type: InfoType.termsAndConditions),
+                              );
+                            },
+                            child: CkText(
+                              text: 'Terms & Conditions',
+                              fontSize: 12,
+                              style: TextStyle(
+                                decoration: .underline,
+                                decorationColor: colors.sTATUS_success,
+                              ),
+                              fontWeight: FontWeight.w500,
+                              textColor: colors.sTATUS_success,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
                 30.height,
+
+                // Info links section
               ],
             );
           },

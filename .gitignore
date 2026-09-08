@@ -64,11 +64,12 @@
 /windows/flutter/ephemeral/
 
 # FVM (Flutter Version Management)
-.fvm/flutter_sdk
-.fvm/versions/
 
 # Temporary files
 temp_auto_push.bat
 temp_interactive_push.bat
 branch_structure.json
 .gitignore
+
+# FVM Version Cache
+.fvm/

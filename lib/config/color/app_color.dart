@@ -5,7 +5,7 @@
  * @Date: 2026-01-07 14:20:59
  * @Email: km.muzahid@gmail.com
  */
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 extension AppColorsX on BuildContext {
   ThemeColor get colors => Theme.of(this).extension<ThemeColor>()!;

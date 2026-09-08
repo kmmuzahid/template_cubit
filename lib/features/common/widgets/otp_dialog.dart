@@ -1,7 +1,7 @@
 import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/color/app_color.dart';
 import 'package:cubit_template/config/core_kit/core_kit_config.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class OtpDialogContent extends StatelessWidget {
   OtpDialogContent({super.key});

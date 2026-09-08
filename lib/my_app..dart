@@ -10,7 +10,7 @@ import 'package:cubit_template/config/route/app_router_observer.dart';
 import 'package:cubit_template/config/theme/cubit/theme_cubit.dart';
 import 'package:cubit_template/config/theme/custom_theme.dart';
 import 'package:cubit_template/config/core_kit/core_kit_config.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();

@@ -4,14 +4,14 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.13.2
 
 dependencies:
   flutter:
     sdk: flutter
-  core_kit: ^1.0.7+1
+  core_kit: ^1.1.1
   # core_kit:
-  #   path: /Users/username/Documents/km muzahid/flutter_core_kit
+  #   path: /Users/km/Documents/Km Muzahid/flutter_core_kit
   
   auto_route: 
   flutter_bloc:
@@ -35,6 +35,7 @@ dependencies:
     # intl_utils:   # to generate from arb 
 
 
+  material_ui: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -56,8 +57,8 @@ dev_dependencies:
 #   image_path: "assets/icon/icon.png" # your custom icon path
 
 flutter:
-  config:
-    enable-swift-package-manager: false
+  # config:
+  #   enable-swift-package-manager: false
     
   generate: true
   uses-material-design: true

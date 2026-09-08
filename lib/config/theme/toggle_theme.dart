@@ -5,7 +5,7 @@
  */
 import 'package:cubit_template/config/bloc/cubit_scope_value.dart';
 import 'package:cubit_template/config/theme/cubit/theme_cubit.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ToggleTheme extends StatelessWidget {

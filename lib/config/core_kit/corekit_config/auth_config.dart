@@ -32,6 +32,7 @@ mixin AuthConfig on CoreKitConfig {
   CkAuthEndpoints _endpoints() {
     return CkAuthEndpoints(
       resetPassword: '',
+      changePassword: '',
       forgotPassword: '',
       signup: '',
       signin: '',

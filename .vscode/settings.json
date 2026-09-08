@@ -19,5 +19,6 @@
     "type": "shell",
     "command": "npm run lint",
     "runOn": "folderOpen"
-  }
+  },
+  "dart.flutterSdkPath": ".fvm/versions/3.47.2"
 }

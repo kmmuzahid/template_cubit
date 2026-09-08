@@ -4,6 +4,11 @@
  * @Email: km.muzahid@gmail.com
  */
 
+import 'package:cubit_template/features/info/repository/info_repository.dart';
+import 'package:get_it/get_it.dart';
+
 class RealRepositoryDependency {
-  static void dependencies() {}
+  static void dependencies() {
+    GetIt.I.registerLazySingleton<InfoRepository>(() => InfoRepository());
+  }
 }
