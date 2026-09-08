@@ -1,6 +1,6 @@
 # Cubit Template
 
-A highly structured, production-ready Flutter template designed for building scalable, responsive, and maintainable applications. It comes pre-configured with **Cubit (Bloc)** for state management, **AutoRoute** for declarative type-safe routing, and **CoreKit** for UI components, networking, and security.
+A highly structured, production-ready Flutter template designed for building scalable, responsive, and maintainable applications. It comes pre-configured with **Cubit (Bloc)** for state management, **AutoRoute** for declarative type-safe routing, and **CoreKit** for UI components, networking, authentication, and security.
 
 ---
 
@@ -8,37 +8,48 @@ A highly structured, production-ready Flutter template designed for building sca
 
 - **State Management**: [flutter_bloc](https://pub.dev/packages/flutter_bloc) / **Cubit** for lightweight and robust state management.
 - **Declarative Routing**: [auto_route](https://pub.dev/packages/auto_route) for automated, type-safe navigation, route guards, and deep-linking support.
-- **Core Utility Package**: [core_kit](file:///Users/username/Documents/km%20muzahid/flutter_core_kit) (built-in) which provides:
+- **Core Utility Package**: [core_kit](https://pub.dev/packages/core_kit) (`^1.1.1+`) which provides:
   - Responsive screen scaling (`.w`, `.h`, `.sp`, `.r` utilities).
   - Production-ready UI widgets (`CkButton`, `CkText`, `CkTextField`, `CkAppBar`, etc.).
-  - Robust networking Layer (`CkTransport` based on Dio) with auto-token refresh & request retries.
+  - Robust networking layer (`CkTransport` based on Dio) with auto-token refresh & request retries.
   - Secure storage wrapper (`CkStorage` using Keychain/Keystore and fallback).
   - Fully integrated Authentication module (`CkAuthService` / `ckAuth`).
+  - Full iOS Swift Package Manager (SPM) compatibility.
 - **Dependency Injection**: [get_it](https://pub.dev/packages/get_it) for fast service locator access.
 - **Model Serialization**: [json_serializable](https://pub.dev/packages/json_serializable) for automatic code generation of models.
+
+> [!TIP]
+> **Check pub.dev for the Latest CoreKit Version**:
+> Always visit **[https://pub.dev/packages/core_kit](https://pub.dev/packages/core_kit)** to get the latest `core_kit` release, changelog, breaking changes, and complete documentation.
 
 ---
 
 ## 📁 Project Directory Structure
 
-```lis
+```text
 lib/
 ├── config/
 │   ├── api/          # API endpoint declarations
+│   ├── bloc/         # CubitScope and helper wrappers
 │   ├── color/        # ThemeColor styling & extensions (Dark/Light configurations)
-│   ├── dependency/   # GetIt locator configurations
+│   ├── core_kit/     # Modular CoreKit configuration files and AppCoreKitConfig
+│   ├── dependency/   # GetIt locator configurations (Repositories, Services)
 │   ├── route/        # AutoRoute definitions, observers, and navigation guards
-│   ├── theme/        # Custom ThemeData configurations, fonts, and theme-switching Cubits
-│   └── core_kit/     # Modular CoreKit configuration files and AppCoreKitConfig
+│   └── theme/        # Custom ThemeData configurations, fonts, and theme-switching Cubits
 │
-├── features/         # Modular feature-by-feature layout
-├── my_app.dart               # Theme setup, MultiBlocProvider setup, and MaterialApp registration
-├── main.dart                 # Application entry point
+├── features/         # Modular feature-by-feature layout (auth, common, home, info, splash)
+├── gen/              # Generated assets & resources (flutter_gen)
+├── my_app..dart      # Theme setup, MultiBlocProvider setup, and MaterialApp registration
+└── main.dart         # Application entry point
 ```
 
 ---
 
 ## 🔧 CoreKit Integration
+
+This template is configured to use [core_kit](https://pub.dev/packages/core_kit) (`^1.1.1+`) from pub.dev.
+
+> 📦 **Package URL**: [https://pub.dev/packages/core_kit](https://pub.dev/packages/core_kit) — Check here regularly for new releases, API documentation, and feature updates.
 
 ### 1. Bootstrapping Configurations
 `AppCoreKitConfig` extends `CoreKitConfig` and implements all global parameters required for networking, design dimensions, and splash delay:
@@ -52,6 +63,12 @@ The package auto-manages authentication states dynamically:
 - Upon loading, CoreKit checks credentials via `CkAuthService` and invokes handlers defined in `AppCoreKitConfig`:
   - **`onAuthenticated`**: Invoked on success, redirecting to `HomeRoute()`.
   - **`showLogin`**: Invoked if credentials are missing or expired, redirecting to `LoginRoute()`.
+
+---
+
+## 🍏 iOS SPM (Swift Package Manager) Ready
+
+The project is fully pre-configured and tested for iOS builds using Swift Package Manager (SPM) with CoreKit 1.1.1+.
 
 ---
 
