@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  core_kit: ^1.1.2
+  core_kit: ^1.1.4
   # core_kit:
   #   path: /Users/km/Documents/Km Muzahid/flutter_core_kit
   
