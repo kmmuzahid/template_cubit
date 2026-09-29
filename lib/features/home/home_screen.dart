@@ -2,7 +2,7 @@ import 'package:auto_route/annotations.dart';
 import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/color/app_color.dart';
 import 'package:cubit_template/config/core_kit/core_kit_config.dart';
-import 'package:cubit_template/features/common/widgets/app_screen_layout.dart';
+import 'package:cubit_template/features/auth/widgets/app_screen_layout.dart'; 
 import 'package:material_ui/material_ui.dart';
 
 @RoutePage()
