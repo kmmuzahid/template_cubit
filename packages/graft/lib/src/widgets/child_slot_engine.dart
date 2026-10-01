@@ -44,18 +44,18 @@ class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget {
   /// The [Graft] controller providing state updates.
   final Graft<S> graft;
 
+  /// Layout wrapper (e.g. `(children) => Column(children: children)`) receiving isolated slot widgets.
+  final Widget Function(List<Widget> children) layoutBuilder;
+
   /// Builder returning the list of children widgets based on current [S].
   final List<Widget> Function(S state) childrenBuilder;
-
-  /// Layout wrapper (e.g. `Column(...)`, `Row(...)`) receiving the isolated slot widgets.
-  final Widget Function(BuildContext context, List<Widget> children) layoutBuilder;
 
   /// Creates a [GraftMultiChildDiffEngine] that manages isolated slot rebuilds.
   const GraftMultiChildDiffEngine({
     super.key,
     required this.graft,
-    required this.childrenBuilder,
     required this.layoutBuilder,
+    required this.childrenBuilder,
   });
 
   /// Compares two widgets for content equivalence to prevent unnecessary slot rebuilds.
@@ -119,7 +119,11 @@ class _GraftMultiChildDiffEngineState<S extends GraftState>
   }
 
   void _initSlots() {
-    final initialWidgets = widget.childrenBuilder(widget.graft.state);
+    final initialWidgets = GraftScopeGuard.run(
+      widget.graft,
+      'graft.slots',
+      () => widget.childrenBuilder(widget.graft.state),
+    );
     _slotNotifiers = initialWidgets.map((w) => ValueNotifier<Widget>(w)).toList();
   }
 
@@ -144,7 +148,11 @@ class _GraftMultiChildDiffEngineState<S extends GraftState>
   void _onStateChanged() {
     if (!mounted) return;
 
-    final newWidgets = widget.childrenBuilder(widget.graft.state);
+    final newWidgets = GraftScopeGuard.run(
+      widget.graft,
+      'graft.slots',
+      () => widget.childrenBuilder(widget.graft.state),
+    );
 
     // If child count changed (e.g. conditional if-statement), rebuild container
     if (newWidgets.length != _slotNotifiers.length) {
@@ -186,28 +194,35 @@ class _GraftMultiChildDiffEngineState<S extends GraftState>
     final wrappedChildren = List<Widget>.generate(_slotNotifiers.length, (i) {
       return _ChildSlotScope(
         key: ValueKey(i),
+        graft: widget.graft,
         notifier: _slotNotifiers[i],
       );
     });
 
-    return widget.layoutBuilder(context, wrappedChildren);
+    return widget.layoutBuilder(wrappedChildren);
   }
 }
 
 /// An isolated slot scope that rebuilds only when its specific slot notifier fires.
 class _ChildSlotScope extends StatelessWidget {
+  final Graft graft;
   final ValueNotifier<Widget> notifier;
 
   const _ChildSlotScope({
     super.key,
+    required this.graft,
     required this.notifier,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Widget>(
-      valueListenable: notifier,
-      builder: (_, widget, __) => widget,
+    return InheritedGraftScope(
+      graft: graft,
+      caller: 'graft.slots',
+      child: ValueListenableBuilder<Widget>(
+        valueListenable: notifier,
+        builder: (_, widget, __) => widget,
+      ),
     );
   }
 }
@@ -217,8 +232,6 @@ class _ChildSlotScope extends StatelessWidget {
 /// ### Why use GraftSingleSlotScope?
 /// Isolates a single widget builder so that modifications to unrelated fields in [GraftState]
 /// do not cause this widget subtree to rebuild.
-///
-/// Powering `graft.slot(...)`, `graft.padding(...)`, `graft.center(...)`, and `graft.card(...)`.
 class GraftSingleSlotScope<S extends GraftState> extends StatefulWidget {
   /// The [Graft] controller providing state updates.
   final Graft<S> graft;
@@ -243,14 +256,24 @@ class _GraftSingleSlotScopeState<S extends GraftState> extends State<GraftSingle
   @override
   void initState() {
     super.initState();
-    _slotNotifier = ValueNotifier<Widget>(widget.builder(widget.graft.state));
+    _slotNotifier = ValueNotifier<Widget>(
+      GraftScopeGuard.run(
+        widget.graft,
+        'graft.slot',
+        () => widget.builder(widget.graft.state),
+      ),
+    );
     widget.graft.addListener(_onStateChanged);
   }
 
   void _onStateChanged() {
     if (!mounted) return;
     final oldWidget = _slotNotifier.value;
-    final newWidget = widget.builder(widget.graft.state);
+    final newWidget = GraftScopeGuard.run(
+      widget.graft,
+      'graft.slot',
+      () => widget.builder(widget.graft.state),
+    );
 
     if (identical(oldWidget, newWidget)) return;
     if (GraftMultiChildDiffEngine.isWidgetEquivalent(oldWidget, newWidget)) return;
@@ -263,7 +286,11 @@ class _GraftSingleSlotScopeState<S extends GraftState> extends State<GraftSingle
     super.didUpdateWidget(oldWidget);
     if (oldWidget.graft != widget.graft) {
       oldWidget.graft.removeListener(_onStateChanged);
-      _slotNotifier.value = widget.builder(widget.graft.state);
+      _slotNotifier.value = GraftScopeGuard.run(
+        widget.graft,
+        'graft.slot',
+        () => widget.builder(widget.graft.state),
+      );
       widget.graft.addListener(_onStateChanged);
     }
   }
@@ -277,9 +304,130 @@ class _GraftSingleSlotScopeState<S extends GraftState> extends State<GraftSingle
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Widget>(
-      valueListenable: _slotNotifier,
-      builder: (_, child, __) => child,
+    assert(() {
+      final ancestorScope = context.getInheritedWidgetOfExactType<InheritedGraftScope>();
+      if (ancestorScope != null && identical(ancestorScope.graft, widget.graft)) {
+        throw FlutterError(
+          '\n════════════════════════════════════════════════════════════════════════════════\n'
+          '⚠️ GRAFT ANTI-PATTERN DETECTED: NESTED ELEMENT TREE SCOPE ON ${widget.graft.runtimeType}\n'
+          '════════════════════════════════════════════════════════════════════════════════\n'
+          'A widget inside "${ancestorScope.caller}" is trying to observe the exact same ${widget.graft.runtimeType} with "graft.slot"!\n'
+          'This creates duplicate element listeners on the same controller and degrades performance.\n\n'
+          'Fix: Return widgets directly inside "${ancestorScope.caller}" without wrapping them in graft.slot().\n'
+          '════════════════════════════════════════════════════════════════════════════════\n',
+        );
+      }
+      return true;
+    }());
+
+    return InheritedGraftScope(
+      graft: widget.graft,
+      caller: 'graft.slot',
+      child: ValueListenableBuilder<Widget>(
+        valueListenable: _slotNotifier,
+        builder: (_, child, __) => child,
+      ),
     );
   }
 }
+
+/// Internal guard that tracks active builder executions to detect and prevent anti-pattern nesting.
+abstract final class GraftScopeGuard {
+  static final Set<Graft> _activeBuilders = {};
+  static final Map<Graft, String> _activeCallers = {};
+
+  /// Runs [action] within the registered scope of [caller] on [graft].
+  ///
+  /// Throws a descriptive [FlutterError] in debug mode if [graft] is already being built
+  /// by another builder.
+  static R run<R>(Graft graft, String caller, R Function() action) {
+    assert(() {
+      if (_activeBuilders.contains(graft)) {
+        final existing = _activeCallers[graft] ?? 'another builder';
+        throw FlutterError(
+          '\n════════════════════════════════════════════════════════════════════════════════\n'
+          '⚠️ GRAFT ANTI-PATTERN DETECTED: REDUNDANT NESTING ON ${graft.runtimeType}\n'
+          '════════════════════════════════════════════════════════════════════════════════\n'
+          'You called "$caller" directly inside the builder of "$existing" for the exact same ${graft.runtimeType} instance!\n\n'
+          'Why this is a problem:\n'
+          '1. In "$existing", children/slots are already isolated or observed.\n'
+          '2. Nesting another builder on the same Graft creates duplicate listeners, thrashes widget state, and degrades performance.\n\n'
+          'How to fix:\n'
+          '• Inside graft.slots:\n'
+          '  Simply return normal widgets without wrapping them in graft.slot().\n'
+          '  Example:\n'
+          '    graft.slots((children) => Column(children: children), (s) => [\n'
+          '      Text(s.name), // ✅ Return directly!\n'
+          '    ])\n'
+          '• Inside graft.compute:\n'
+          '  Do not use graft.slot() inside compute, as compute already isolates the builder.\n'
+          '════════════════════════════════════════════════════════════════════════════════\n',
+        );
+      }
+      _activeBuilders.add(graft);
+      _activeCallers[graft] = caller;
+      return true;
+    }());
+
+    try {
+      return action();
+    } finally {
+      assert(() {
+        _activeBuilders.remove(graft);
+        _activeCallers.remove(graft);
+        return true;
+      }());
+    }
+  }
+
+  /// Verifies that [graft] is not currently inside an active builder when [caller] is invoked.
+  static void verifyNotActive(Graft graft, String caller) {
+    assert(() {
+      if (_activeBuilders.contains(graft)) {
+        final existing = _activeCallers[graft] ?? 'another builder';
+        throw FlutterError(
+          '\n════════════════════════════════════════════════════════════════════════════════\n'
+          '⚠️ GRAFT ANTI-PATTERN DETECTED: REDUNDANT NESTING ON ${graft.runtimeType}\n'
+          '════════════════════════════════════════════════════════════════════════════════\n'
+          'You called "$caller" directly inside the builder of "$existing" for the exact same ${graft.runtimeType} instance!\n\n'
+          'Why this is a problem:\n'
+          '1. In "$existing", children/slots are already isolated or observed.\n'
+          '2. Nesting another builder on the same Graft creates duplicate listeners, thrashes widget state, and degrades performance.\n\n'
+          'How to fix:\n'
+          '• Inside graft.slots:\n'
+          '  Simply return normal widgets without wrapping them in graft.slot().\n'
+          '  Example:\n'
+          '    graft.slots((children) => Column(children: children), (s) => [\n'
+          '      Text(s.name), // ✅ Return directly!\n'
+          '    ])\n'
+          '• Inside graft.compute:\n'
+          '  Do not use graft.slot() inside compute, as compute already isolates the builder.\n'
+          '════════════════════════════════════════════════════════════════════════════════\n',
+        );
+      }
+      return true;
+    }());
+  }
+}
+
+/// An internal [InheritedWidget] to detect duplicate Graft slot scopes in the element tree.
+class InheritedGraftScope extends InheritedWidget {
+  /// The [Graft] instance providing state to this scope.
+  final Graft graft;
+
+  /// The caller identifier (e.g. 'graft.slots', 'graft.slot', 'graft.compute').
+  final String caller;
+
+  /// Creates an [InheritedGraftScope] wrapping [child].
+  const InheritedGraftScope({
+    super.key,
+    required this.graft,
+    required this.caller,
+    required super.child,
+  });
+
+  @override
+  bool updateShouldNotify(covariant InheritedGraftScope oldWidget) =>
+      oldWidget.graft != graft || oldWidget.caller != caller;
+}
+

@@ -19,7 +19,7 @@ Most Flutter state management solutions force you into an unpleasant compromise:
 
 | Feature / Metric | Flutter Bloc | Riverpod | Signals | **Graft** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Fine-Grained Rebuilds** | ❌ Manual `BlocSelector` per field | ⚠️ Requires `ref.watch(p.select(...))` | ✅ Rebuilds per signal | ✅ **Automatic**: `graft.column((s) => [ ... ])` diffs slots with **zero manual selectors** |
+| **Fine-Grained Rebuilds** | ❌ Manual `BlocSelector` per field | ⚠️ Requires `ref.watch(p.select(...))` | ✅ Rebuilds per signal | ✅ **Automatic**: `graft.slots((c) => Column(children: c), (s) => [ ... ])` diffs slots with **zero manual selectors** |
 | **Widget Tree Nesting** | ❌ Deep pyramid (`BlocProvider` → `BlocBuilder`) | ⚠️ `Consumer` / `ConsumerWidget` | ⚠️ `Watch(...)` wrappers | ✅ **Zero Nesting**: `final graft = context.use<MyGraft>()` at top of standard `StatelessWidget` |
 | **Code Generation** | ✅ None | ❌ Heavily pushed (`@riverpod`, `build_runner`) | ✅ None | ✅ **Strictly 0 Code-Gen** |
 | **State Structure** | ✅ Single immutable class | ✅ Single immutable class | ❌ Fragmented into loose signals | ✅ **Single cohesive, immutable domain State** |
@@ -54,15 +54,18 @@ Column(
 )
 ```
 
-### With Graft (Clean, normal Flutter list):
+### With Graft (Clean, explicit layout without context):
 ```dart
-// ✅ Graft: Normal list! The slot diff engine isolates each child automatically.
-graft.column((s) => [
-  const HeaderBanner(), // const: 0 rebuilds!
-  Text(s.name),         // Only rebuilds when name changes!
-  Text(s.email),        // 0 rebuilds if email didn't change!
-  if (s.isVerified) const VerifiedBadge(),
-])
+// ✅ Graft: Diff engine isolates each child slot automatically.
+graft.slots(
+  (children) => Column(children: children),
+  (s) => [
+    const HeaderBanner(), // const: 0 rebuilds!
+    Text(s.name),         // Only rebuilds when name changes!
+    Text(s.email),        // 0 rebuilds if email didn't change!
+    if (s.isVerified) const VerifiedBadge(),
+  ],
+)
 ```
 
 ---
@@ -182,17 +185,20 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: graft.column((s) => [
-        const HeaderBanner(),
-        Text(s.name, style: Theme.of(context).textTheme.headlineMedium),
-        Text(s.email),
-        if (s.isVerified) const VerifiedBadge(),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: () => graft.updateName('New Name'),
-          child: const Text('Change Name'),
-        ),
-      ]),
+      body: graft.slots(
+        (children) => Column(children: children),
+        (s) => [
+          const HeaderBanner(),
+          Text(s.name, style: Theme.of(context).textTheme.headlineMedium),
+          Text(s.email),
+          if (s.isVerified) const VerifiedBadge(),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => graft.updateName('New Name'),
+            child: const Text('Change Name'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -210,7 +216,7 @@ class EditProfileScreen extends StatelessWidget {
     final graft = context.use<UserGraft>();
 
     return Scaffold(
-      body: graft.column((s) => [ ... ]),
+      body: graft.slots((children) => Column(children: children), (s) => [ ... ]),
     );
   }
 }
@@ -232,45 +238,63 @@ final graft = context.find<UserGraft>();
 
 ---
 
-## 🎨 UI Layout Engine
+## 🎨 UI Slot Engine
 
-### Multi-Child Slot Diffing:
-- `graft.column((s) => [ ... ])`
-- `graft.row((s) => [ ... ])`
-- `graft.stack((s) => [ ... ])`
-- `graft.wrap((s) => [ ... ])`
+Graft provides a clean, 3-method widget API with **zero fluff**:
 
-### Non-List Widgets (Independent Slot Diffing):
-- `graft.listTile(leading: (s) => ..., title: (s) => ..., subtitle: (s) => ..., trailing: const Icon(...))`
-- `graft.padding(padding: EdgeInsets.all(16), child: (s) => ...)`
-- `graft.card(child: (s) => ...)`
-- `graft.center(child: (s) => ...)`
-
-### Single-Slot Diffing:
+### 1. `graft.slot(...)` (Single-Child Slot & State Switching)
+Isolates any single widget slot. Only rebuilds when the returned widget changes:
 ```dart
-// Rebuilds ONLY when the returned widget changes:
-graft.slot((s) => Text(s.name))
-```
+AppBar(
+  title: graft.slot((s) => Text(s.title)),
+)
 
-### Full-Page State Switching:
-```dart
-graft.layout((context, s) {
+ListTile(
+  leading: graft.slot((s) => CircleAvatar(child: Text(s.name[0]))),
+  title: graft.slot((s) => Text(s.name)),
+  subtitle: graft.slot((s) => Text(s.email)),
+)
+
+// Also handles full-page state switching seamlessly:
+graft.slot((s) {
   if (s.isLoading) return const CircularProgressIndicator();
   if (s.hasError) return Text(s.error);
   return ContentView(data: s.data);
 })
 ```
 
-### Self-Invented & 3rd-Party Custom Widgets:
-Use `graft.watch` or `graft.select` anywhere in your widget tree:
+### 2. `graft.slots(...)` (Multi-Child Slot Diffing List)
+Automatically diffs every child widget independently. Takes [layout] as the first required parameter (without unnecessary `BuildContext`) and [children] as the second:
 ```dart
-graft.watch((s) => MyCustomSelfInventedWidget(
-  data: s.customData,
-  accentColor: s.themeColor,
-))
+// 1. Column:
+graft.slots(
+  (children) => Column(children: children),
+  (s) => [
+    const HeaderBanner(),
+    Text(s.name),
+    if (s.isVerified) const VerifiedBadge(),
+    Text(s.email),
+  ],
+)
 
-// Granular selector: only rebuilds when `isVerified` changes:
-graft.select((s) => s.isVerified, (isVerified) => VerifiedBadge(active: isVerified))
+// 2. Custom Layout (Row, Wrap, Stack, ListView, etc.):
+graft.slots(
+  (children) => Row(children: children),
+  (s) => [
+    const Icon(Icons.star),
+    Text('${s.rating}'),
+    Text('(${s.reviews})'),
+  ],
+)
+```
+
+### 3. `graft.compute(...)` (Pre-Flight Derived Computation)
+Computes a derived value from state first. If the computed value is unchanged, the widget builder is **never even executed**, saving CPU cycles on heavy subtrees:
+```dart
+graft.compute(
+  (s) => s.notifications.length, // Derived computation: int
+  (count) => HeavyBadge(count: count), // Builder runs ONLY when count changes!
+)
 ```
 
 ### Custom Slot Equivalence (`GraftEquivalent`):
@@ -287,6 +311,94 @@ class UserCard extends StatelessWidget implements GraftEquivalent {
   @override
   Widget build(BuildContext context) => Text(name);
 }
+```
+
+---
+
+## 📜 Working with Lists (`ListView.builder`)
+
+Flutter's `ListView.builder` is a virtualized, on-demand scrolling widget. Graft supports both standard single-graft lists and extreme per-item micro-state lists:
+
+### Pattern A: Standard `ListView.builder` (Without ValueGraft — Recommended)
+For 95% of applications, manage your list inside a single `GraftState`:
+
+```dart
+// 1. Plain Dart Model (no wrappers needed):
+class TaskItem {
+  final String id;
+  final String title;
+  final bool isDone;
+  TaskItem({required this.id, required this.title, required this.isDone});
+}
+
+// 2. Graft State & Controller:
+class TaskState extends GraftState {
+  List<TaskItem> tasks = [];
+}
+
+class TaskGraft extends Graft<TaskState> {
+  TaskGraft() : super(TaskState());
+
+  void toggleTask(String id) {
+    state
+      ..tasks = state.tasks.map((t) => t.id == id ? TaskItem(id: t.id, title: t.title, isDone: !t.isDone) : t).toList()
+      ..update();
+  }
+}
+
+// 3. UI (Single graft.slot):
+graft.slot((s) => ListView.builder(
+  itemCount: s.tasks.length,
+  itemBuilder: (context, index) {
+    final task = s.tasks[index];
+    return ListTile(
+      title: Text(task.title),
+      trailing: Checkbox(
+        value: task.isDone,
+        onChanged: (_) => graft.toggleTask(task.id),
+      ),
+    );
+  },
+))
+```
+*Because `ListView.builder` is virtualized, Flutter only mounts visible rows and reuses elements automatically.*
+
+---
+
+### Pattern B: Micro-State Cells (With `ValueGraft` — Zero List Rebuilds)
+In massive feeds (like social media, stock tickers, or shopping carts) where tapping a heart or counter should **not** notify or re-render any other part of the list:
+
+```dart
+// 1. Model holds a ValueGraft for independent cell interactions:
+class ProductItem {
+  final String title;
+  final ValueGraft<bool> isLiked;
+  final ValueGraft<int> quantity;
+
+  ProductItem(this.title, {bool liked = false, int count = 1})
+      : isLiked = ValueGraft<bool>(liked),
+        quantity = ValueGraft<int>(count);
+}
+
+// 2. UI: Each cell's slot diffs independently:
+ListView.builder(
+  itemCount: products.length,
+  itemBuilder: (context, index) {
+    final item = products[index];
+    return ListTile(
+      title: Text(item.title),
+      subtitle: item.quantity.slot(
+        (qty) => Text('Qty: $qty'), // 👈 Only this text rebuilds on quantity change!
+      ),
+      trailing: item.isLiked.slot(
+        (liked) => IconButton(     // 👈 Only this icon rebuilds on like toggle!
+          icon: Icon(liked ? Icons.favorite : Icons.favorite_border),
+          onPressed: () => item.isLiked.value = !item.isLiked.value,
+        ),
+      ),
+    );
+  },
+)
 ```
 
 ---

@@ -158,7 +158,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: graft.column((s) => [
+            body: graft.slots(
+              (children) => Column(children: children),
+              (s) => [
               const _ConstHeaderWidget(),
               _DynamicFieldWidget(label: 'Name', value: s.name),
               _DynamicFieldWidget(label: 'Age', value: s.age.toString(), isAge: true),
@@ -222,7 +224,7 @@ void main() {
       expect(listenerCalls, 2);
     });
 
-    testWidgets('ValueGraft.slot and ValueGraft.watch render reactive updates cleanly', (tester) async {
+    testWidgets('ValueGraft.slot renders reactive updates cleanly', (tester) async {
       final counter = _TestCounterGraft();
 
       await tester.pumpWidget(
@@ -231,7 +233,6 @@ void main() {
             body: Column(
               children: [
                 counter.slot((count) => Text('Slot Count: $count')),
-                counter.watch((count) => Text('Watch Count: $count')),
               ],
             ),
           ),
@@ -239,13 +240,11 @@ void main() {
       );
 
       expect(find.text('Slot Count: 0'), findsOneWidget);
-      expect(find.text('Watch Count: 0'), findsOneWidget);
 
       counter.increment();
       await tester.pump();
 
       expect(find.text('Slot Count: 1'), findsOneWidget);
-      expect(find.text('Watch Count: 1'), findsOneWidget);
     });
   });
 }

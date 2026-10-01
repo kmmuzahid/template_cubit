@@ -20,7 +20,8 @@ class GraftValue<T> extends GraftState {
 /// ### Why use ValueGraft?
 /// - **Zero State Class:** Ideal when you only need to track a single `int`, `bool`, `String`, or `enum`.
 /// - **Direct Mutation:** Mutate with `value++` or `value = newValue` without writing `state..update()`.
-/// - **Native UI Interop:** Works seamlessly with `graft.slot((val) => Text('$val'))` and `graft.watch(...)`.
+/// - **Native UI Interop:** Works seamlessly with `graft.slot((val) => Text('$val'))`.
+/// - **Per-Item Micro-State:** Wrap independent cell states in `ListView.builder` (e.g. `item.isLiked.slot(...)`) for zero parent rebuilds.
 /// - **Automatic Route Lifecycle:** Inherited and auto-disposed across the navigation stack just like standard [Graft].
 ///
 /// ### Example:
@@ -47,7 +48,7 @@ class GraftValue<T> extends GraftState {
 ///   void onQueryChanged(String query) => value = query;
 /// }
 /// ```
-abstract class ValueGraft<T> extends Graft<GraftValue<T>> {
+class ValueGraft<T> extends Graft<GraftValue<T>> {
   /// Creates a [ValueGraft] initialized with [initialValue].
   ValueGraft(T initialValue) : super(GraftValue<T>(initialValue));
 

@@ -26,9 +26,10 @@
 ///
 /// 3. **Fine-Grained Slot Isolation ([GraftWidgetsX]):**
 ///    Instead of rebuilding the whole screen on every emission, isolate slots:
-///    - `graft.column(...)`, `graft.row(...)`, `graft.stack(...)`, `graft.wrap(...)`
-///    - `graft.listTile(...)`, `graft.card(...)`, `graft.padding(...)`, `graft.center(...)`
-///    - `graft.slot(...)`, `graft.select(...)`, `graft.watch(...)`, `graft.layout(...)`
+///    - `graft.slot(...)`: Isolated single-child slot for any Flutter widget.
+///    - `graft.slots(...)`: Multi-child slot diffing with explicit layout (e.g. `(children) => Column(children: children)`).
+///    - `graft.compute(...)`: Pre-flight data computation; skips building if the derived value is unchanged.
+
 ///
 /// 4. **Route-Stack Dependency Injection ([GraftContextX]):**
 ///    Zero `MultiProvider` widget nesting. Declare factories once in [GraftRegistry]:

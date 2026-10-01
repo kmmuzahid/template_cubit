@@ -4,380 +4,11 @@ import '../core/graft_state.dart';
 import '../core/value_graft.dart';
 import 'child_slot_engine.dart';
 
-/// Extension on [Graft<S>] providing seamless, reactive Flutter widget builders.
+/// Extension on [Graft<S>] providing high-performance reactive Flutter widget builders.
 extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   // ===========================================================================
-  // MULTI-CHILD LAYOUTS (AUTOMATIC SLOT DIFFING)
+  // 1. SINGLE SLOT (ONE WIDGET)
   // ===========================================================================
-
-  /// A high-performance reactive [Column] whose child slots diff independently.
-  ///
-  /// ### Why use `graft.column(...)`?
-  /// In standard Flutter, when state changes, an entire `Column` and all its children rebuild.
-  /// `graft.column` automatically isolates each child into an independent slot:
-  /// - `const` children: **0 rebuilds** (completely skipped by Flutter's render pipeline).
-  /// - Children with unchanged properties: **0 rebuilds** (equivalence match).
-  /// - Children with changed properties: **Only that specific child rebuilds!**
-  ///
-  /// ### Example:
-  /// ```dart
-  /// graft.column((s) => [
-  ///   const CardHeader(),             // 0 rebuilds (const)
-  ///   Text(s.name),                   // Rebuilds ONLY when s.name changes
-  ///   Text(s.email),                  // 0 rebuilds if email didn't change
-  ///   if (s.isVerified) const Badge(),
-  /// ])
-  /// ```
-  Widget column(
-    List<Widget> Function(S state) children, {
-    Key? key,
-    MainAxisAlignment mainAxisAlignment = MainAxisAlignment.start,
-    MainAxisSize mainAxisSize = MainAxisSize.max,
-    CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.center,
-    TextDirection? textDirection,
-    VerticalDirection verticalDirection = VerticalDirection.down,
-    TextBaseline? textBaseline,
-  }) {
-    return GraftMultiChildDiffEngine<S>(
-      key: key,
-      graft: this,
-      childrenBuilder: children,
-      layoutBuilder: (context, slotWidgets) => Column(
-        mainAxisAlignment: mainAxisAlignment,
-        mainAxisSize: mainAxisSize,
-        crossAxisAlignment: crossAxisAlignment,
-        textDirection: textDirection,
-        verticalDirection: verticalDirection,
-        textBaseline: textBaseline,
-        children: slotWidgets,
-      ),
-    );
-  }
-
-  /// A high-performance reactive [Row] whose child slots diff independently.
-  ///
-  /// ### Why use `graft.row(...)`?
-  /// Like `graft.column`, only slots whose properties actually changed will rebuild.
-  /// `const` widgets and unchanged slots experience **0 rebuilds**.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// graft.row((s) => [
-  ///   const Icon(Icons.star),         // 0 rebuilds
-  ///   Text('${s.rating}'),            // Rebuilds ONLY when rating changes
-  ///   Text('(${s.reviewCount})'),     // 0 rebuilds if reviewCount is unchanged
-  /// ])
-  /// ```
-  Widget row(
-    List<Widget> Function(S state) children, {
-    Key? key,
-    MainAxisAlignment mainAxisAlignment = MainAxisAlignment.start,
-    MainAxisSize mainAxisSize = MainAxisSize.max,
-    CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.center,
-    TextDirection? textDirection,
-    VerticalDirection verticalDirection = VerticalDirection.down,
-    TextBaseline? textBaseline,
-  }) {
-    return GraftMultiChildDiffEngine<S>(
-      key: key,
-      graft: this,
-      childrenBuilder: children,
-      layoutBuilder: (context, slotWidgets) => Row(
-        mainAxisAlignment: mainAxisAlignment,
-        mainAxisSize: mainAxisSize,
-        crossAxisAlignment: crossAxisAlignment,
-        textDirection: textDirection,
-        verticalDirection: verticalDirection,
-        textBaseline: textBaseline,
-        children: slotWidgets,
-      ),
-    );
-  }
-
-  /// A high-performance reactive [Stack] whose child slots diff independently.
-  ///
-  /// ### Why use `graft.stack(...)`?
-  /// Ideal for layered views, overlays, badges, and floating actions.
-  /// Changing a foreground badge slot does NOT rebuild background image layers.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// graft.stack((s) => [
-  ///   const BackgroundBanner(),       // 0 rebuilds (heavy background cached)
-  ///   Positioned(
-  ///     top: 10,
-  ///     right: 10,
-  ///     child: Text('${s.badgeCount}'), // Rebuilds ONLY when badgeCount changes
-  ///   ),
-  /// ])
-  /// ```
-  Widget stack(
-    List<Widget> Function(S state) children, {
-    Key? key,
-    AlignmentGeometry alignment = AlignmentDirectional.topStart,
-    TextDirection? textDirection,
-    StackFit fit = StackFit.loose,
-    Clip clipBehavior = Clip.hardEdge,
-  }) {
-    return GraftMultiChildDiffEngine<S>(
-      key: key,
-      graft: this,
-      childrenBuilder: children,
-      layoutBuilder: (context, slotWidgets) => Stack(
-        alignment: alignment,
-        textDirection: textDirection,
-        fit: fit,
-        clipBehavior: clipBehavior,
-        children: slotWidgets,
-      ),
-    );
-  }
-
-  /// A high-performance reactive [Wrap] whose child slots diff independently.
-  ///
-  /// ### Why use `graft.wrap(...)`?
-  /// Perfect for chips, tags, and dynamic filters.
-  /// Modifying or selecting one tag does not rebuild the other tags in the flow.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// graft.wrap((s) => [
-  ///   for (final tag in s.availableTags)
-  ///     FilterChip(
-  ///       label: Text(tag.name),
-  ///       selected: tag.isSelected,
-  ///       onSelected: (_) => graft.toggleTag(tag.id),
-  ///     ),
-  /// ])
-  /// ```
-  Widget wrap(
-    List<Widget> Function(S state) children, {
-    Key? key,
-    Axis direction = Axis.horizontal,
-    WrapAlignment alignment = WrapAlignment.start,
-    double spacing = 0.0,
-    WrapAlignment runAlignment = WrapAlignment.start,
-    double runSpacing = 0.0,
-    WrapCrossAlignment crossAxisAlignment = WrapCrossAlignment.start,
-    TextDirection? textDirection,
-    VerticalDirection verticalDirection = VerticalDirection.down,
-    Clip clipBehavior = Clip.none,
-  }) {
-    return GraftMultiChildDiffEngine<S>(
-      key: key,
-      graft: this,
-      childrenBuilder: children,
-      layoutBuilder: (context, slotWidgets) => Wrap(
-        direction: direction,
-        alignment: alignment,
-        spacing: spacing,
-        runAlignment: runAlignment,
-        runSpacing: runSpacing,
-        crossAxisAlignment: crossAxisAlignment,
-        textDirection: textDirection,
-        verticalDirection: verticalDirection,
-        clipBehavior: clipBehavior,
-        children: slotWidgets,
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // NON-LIST & NAMED-SLOT WIDGETS
-  // ===========================================================================
-
-  /// A high-performance reactive [ListTile] whose named slots rebuild independently.
-  ///
-  /// ### Why use `graft.listTile(...)`?
-  /// In standard Flutter, updating a user's status or badge inside a `ListTile` forces the
-  /// entire tile (avatar, title, subtitle, trailing icon) to repaint.
-  /// `graft.listTile` isolates `leading`, `title`, and `subtitle` into separate slots:
-  /// - Changing `title` does NOT rebuild `leading` or `subtitle`.
-  /// - Constant `trailing` widgets experience **0 rebuilds**.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// graft.listTile(
-  ///   leading: (s) => CircleAvatar(child: Text(s.name[0])),
-  ///   title: (s) => Text(s.name),
-  ///   subtitle: (s) => Text(s.statusText), // Rebuilds ONLY when statusText changes
-  ///   trailing: const Icon(Icons.chevron_right), // 0 rebuilds
-  /// )
-  /// ```
-  Widget listTile({
-    Key? key,
-    Widget Function(S state)? leading,
-    Widget Function(S state)? title,
-    Widget Function(S state)? subtitle,
-    Widget? trailing,
-    bool? isThreeLine,
-    bool? dense,
-    VisualDensity? visualDensity,
-    ShapeBorder? shape,
-    Color? selectedColor,
-    Color? iconColor,
-    Color? textColor,
-    EdgeInsetsGeometry? contentPadding,
-    bool enabled = true,
-    GestureTapCallback? onTap,
-    GestureLongPressCallback? onLongPress,
-    bool selected = false,
-    Color? focusColor,
-    Color? hoverColor,
-    Color? tileColor,
-    Color? selectedTileColor,
-    bool? enableFeedback,
-    double? horizontalTitleGap,
-    double? minVerticalPadding,
-    double? minLeadingWidth,
-  }) {
-    return ListTile(
-      key: key,
-      leading: leading != null ? slot(leading) : null,
-      title: title != null ? slot(title) : null,
-      subtitle: subtitle != null ? slot(subtitle) : null,
-      trailing: trailing,
-      isThreeLine: isThreeLine ?? false,
-      dense: dense,
-      visualDensity: visualDensity,
-      shape: shape,
-      selectedColor: selectedColor,
-      iconColor: iconColor,
-      textColor: textColor,
-      contentPadding: contentPadding,
-      enabled: enabled,
-      onTap: onTap,
-      onLongPress: onLongPress,
-      selected: selected,
-      focusColor: focusColor,
-      hoverColor: hoverColor,
-      tileColor: tileColor,
-      selectedTileColor: selectedTileColor,
-      enableFeedback: enableFeedback,
-      horizontalTitleGap: horizontalTitleGap,
-      minVerticalPadding: minVerticalPadding,
-      minLeadingWidth: minLeadingWidth,
-    );
-  }
-
-  /// A reactive [Padding] widget whose child only rebuilds when its content changes.
-  ///
-  /// ### Why use `graft.padding(...)`?
-  /// Wraps an isolated diffing slot with padding, ensuring the padding layout element
-  /// remains stable across emissions.
-  Widget padding({
-    Key? key,
-    required EdgeInsetsGeometry padding,
-    required Widget Function(S state) child,
-  }) {
-    return Padding(
-      key: key,
-      padding: padding,
-      child: slot(child),
-    );
-  }
-
-  /// A reactive [Center] widget whose child only rebuilds when its content changes.
-  ///
-  /// ### Why use `graft.center(...)`?
-  /// Centers an isolated diffing slot without rebuilding the centering layout.
-  Widget center({
-    Key? key,
-    double? widthFactor,
-    double? heightFactor,
-    required Widget Function(S state) child,
-  }) {
-    return Center(
-      key: key,
-      widthFactor: widthFactor,
-      heightFactor: heightFactor,
-      child: slot(child),
-    );
-  }
-
-  /// A reactive [Card] widget whose child only rebuilds when its content changes.
-  ///
-  /// ### Why use `graft.card(...)`?
-  /// Houses an isolated diffing slot inside a Material Card. Material styling, shadows,
-  /// and elevation stay cached while dynamic interior slots diff independently.
-  Widget card({
-    Key? key,
-    Color? color,
-    Color? shadowColor,
-    Color? surfaceTintColor,
-    double? elevation,
-    ShapeBorder? shape,
-    bool borderOnForeground = true,
-    EdgeInsetsGeometry? margin,
-    Clip? clipBehavior,
-    bool semanticContainer = true,
-    required Widget Function(S state) child,
-  }) {
-    return Card(
-      key: key,
-      color: color,
-      shadowColor: shadowColor,
-      surfaceTintColor: surfaceTintColor,
-      elevation: elevation,
-      shape: shape,
-      borderOnForeground: borderOnForeground,
-      margin: margin,
-      clipBehavior: clipBehavior,
-      semanticContainer: semanticContainer,
-      child: slot(child),
-    );
-  }
-
-  // ===========================================================================
-  // FULL PAGE / CONDITIONAL STATE MACHINE (LOADING, ERROR, SUCCESS)
-  // ===========================================================================
-
-  /// Builds a reactive UI for full-page state switching (e.g. Loading / Error / Content).
-  ///
-  /// ### Why use `graft.layout(...)`?
-  /// When your screen represents mutually exclusive full-page states (such as an initial spinner,
-  /// a network failure screen, or loaded dashboard), use `graft.layout` to switch seamlessly.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// graft.layout((context, s) {
-  ///   if (s.isLoading) return const LoadingSpinner();
-  ///   if (s.error != null) return ErrorBanner(message: s.error!);
-  ///   return ContentDashboard(user: s.user);
-  /// })
-  /// ```
-  Widget layout(
-    Widget Function(BuildContext context, S state) builder, {
-    Key? key,
-  }) {
-    return ValueListenableBuilder<S>(
-      key: key,
-      valueListenable: listenable,
-      builder: (context, state, _) => builder(context, state),
-    );
-  }
-
-  // ===========================================================================
-  // UNIVERSAL ADAPTER (SELF-INVENTED / 3RD-PARTY WIDGETS)
-  // ===========================================================================
-
-  /// Universal reactive adapter. Rebuilds the returned widget whenever [state] changes.
-  ///
-  /// ### Why use `graft.watch(...)`?
-  /// Use this when integrating 3rd-party widgets, complex canvas paints, or custom widgets
-  /// that need access to the full state object on every update.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// graft.watch((s) => Complex3rdPartyChart(data: s.chartData))
-  /// ```
-  Widget watch(Widget Function(S state) builder, {Key? key}) {
-    return ValueListenableBuilder<S>(
-      key: key,
-      valueListenable: listenable,
-      builder: (_, state, __) => builder(state),
-    );
-  }
 
   /// Creates an isolated single-child slot that diffs its content.
   ///
@@ -385,11 +16,35 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   /// Rebuilds **ONLY** when the widget returned by [builder] changes properties or identity.
   /// Unrelated state changes in other fields will result in **0 rebuilds** for this slot.
   ///
+  /// Also handles full-screen state switching (e.g. Loading / Error / Content):
+  /// when the returned widget type changes (e.g. `Spinner` to `Dashboard`), it automatically
+  /// swaps the widget.
+  ///
   /// ### Example:
   /// ```dart
-  /// graft.slot((s) => Text('Welcome, ${s.username}!'))
+  /// // 1. Single Field in AppBar / ListTile:
+  /// AppBar(
+  ///   title: graft.slot((s) => Text(s.title)),
+  /// )
+  ///
+  /// // 2. Standard ListView.builder (Without ValueGraft):
+  /// graft.slot((s) => ListView.builder(
+  ///   itemCount: s.items.length,
+  ///   itemBuilder: (context, index) {
+  ///     final item = s.items[index];
+  ///     return ListTile(
+  ///       title: Text(item.title),
+  ///       trailing: Icon(item.isDone ? Icons.check : Icons.circle_outlined),
+  ///     );
+  ///   },
+  /// ))
   /// ```
+  ///
+  /// ⚠️ **Avoid Misuse:**
+  /// - Do **NOT** use `graft.slot` inside `graft.slots(...)`. Those multi-child layouts
+  ///   **already** isolate and diff every child slot automatically!
   Widget slot(Widget Function(S state) builder, {Key? key}) {
+    GraftScopeGuard.verifyNotActive(this, 'graft.slot');
     return GraftSingleSlotScope<S>(
       key: key,
       graft: this,
@@ -397,73 +52,158 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
     );
   }
 
-  /// Selects a specific sub-slice [R] of state and rebuilds **ONLY** when that slice changes.
+  // ===========================================================================
+  // 2. MULTI-SLOTS (LIST OF WIDGETS + OPTIONAL LAYOUT)
+  // ===========================================================================
+
+  /// Creates a reactive multi-child container whose child slots diff independently.
   ///
-  /// ### Why use `graft.select(...)`?
-  /// Prevents unnecessary rebuilds when you only care about a single property or computed value.
+  /// Takes a [layout] function as the first parameter (e.g. `(children) => Column(children: children)`),
+  /// and [children] as the second parameter returning the list of child widgets.
+  ///
+  /// ### Why use `graft.slots(...)`?
+  /// Automatically isolates each child into its own diffing slot:
+  /// - `const` children: **0 rebuilds** (pointer identity match).
+  /// - Unchanged children: **0 rebuilds** (equivalence match).
+  /// - Only slots with changed content rebuild in Flutter's render pipeline.
+  /// - Collection-`if` and collection-`for` are 100% supported natively.
+  /// - 100% layout agnostic: Works with [Column], [Row], [Wrap], [Stack], [ListView], etc.
   ///
   /// ### Example:
   /// ```dart
-  /// graft.select(
-  ///   (s) => s.notificationCount, // Only listens to notificationCount changes
-  ///   (count) => Badge(label: Text('$count')),
+  /// // 1. Vertical Column:
+  /// graft.slots(
+  ///   (children) => Column(children: children),
+  ///   (s) => [
+  ///     const ProfileHeader(),
+  ///     Text(s.name),
+  ///     if (s.isVerified) const VerifiedBadge(),
+  ///     Text(s.email),
+  ///   ],
+  /// )
+  ///
+  /// // 2. Horizontal Row:
+  /// graft.slots(
+  ///   (children) => Row(children: children),
+  ///   (s) => [
+  ///     const Icon(Icons.star),
+  ///     Text('${s.rating}'),
+  ///     Text('(${s.reviewCount})'),
+  ///   ],
   /// )
   /// ```
-  Widget select<R>(
-    R Function(S state) selector,
+  ///
+  /// ⚠️ **Avoid Misuse:**
+  /// Do **NOT** wrap children inside `graft.slots` with `graft.slot(...)`!
+  /// Every item in the list is **already** an isolated diffing slot automatically.
+  Widget slots(
+    Widget Function(List<Widget> children) layout,
+    List<Widget> Function(S state) children, {
+    Key? key,
+  }) {
+    GraftScopeGuard.verifyNotActive(this, 'graft.slots');
+    return GraftMultiChildDiffEngine<S>(
+      key: key,
+      graft: this,
+      layoutBuilder: layout,
+      childrenBuilder: children,
+    );
+  }
+
+  // ===========================================================================
+  // 3. COMPUTED DERIVED STATE (PRE-FLIGHT VALUE CHECK)
+  // ===========================================================================
+
+  /// Computes a derived value [R] from state and rebuilds **ONLY** when that computed value changes.
+  ///
+  /// ### Why use `graft.compute(...)`?
+  /// When you derive a computed value from state (e.g. `s.items.length`, `s.unreadCount > 0`,
+  /// or `s.price * s.quantity`), [compute] checks the raw computed value first.
+  /// If the computed value has not changed, the widget builder closure is **never even executed**,
+  /// saving CPU cycles on heavy subtrees.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.compute(
+  ///   (s) => s.notifications.length, // Derived computation: int
+  ///   (count) => HeavyBadge(count: count), // Builder runs ONLY when count changes!
+  /// )
+  /// ```
+  ///
+  /// ⚠️ **Avoid Misuse:**
+  /// - Do **NOT** wrap simple widgets like `Text(s.name)` with `compute`; `graft.slot` and
+  ///   `graft.slots` already do fast widget diffing with zero computation ceremony.
+  /// - Use `compute` primarily for **heavy widget subtrees** or **derived computed values**
+  ///   (e.g., `(s) => s.items.length` or `(s) => s.total > 100`) where you want to prevent
+  ///   the builder closure from running entirely.
+  Widget compute<R>(
+    R Function(S state) computation,
     Widget Function(R value) builder, {
     Key? key,
   }) {
-    return _GraftSelector<S, R>(
+    GraftScopeGuard.verifyNotActive(this, 'graft.compute');
+    return _GraftComputation<S, R>(
       key: key,
       graft: this,
-      selector: selector,
+      computation: computation,
       builder: builder,
     );
   }
 }
 
-class _GraftSelector<S extends GraftState, R> extends StatefulWidget {
+class _GraftComputation<S extends GraftState, R> extends StatefulWidget {
   final Graft<S> graft;
-  final R Function(S state) selector;
+  final R Function(S state) computation;
   final Widget Function(R value) builder;
 
-  const _GraftSelector({
+  const _GraftComputation({
     super.key,
     required this.graft,
-    required this.selector,
+    required this.computation,
     required this.builder,
   });
 
   @override
-  State<_GraftSelector<S, R>> createState() => _GraftSelectorState<S, R>();
+  State<_GraftComputation<S, R>> createState() => _GraftComputationState<S, R>();
 }
 
-class _GraftSelectorState<S extends GraftState, R> extends State<_GraftSelector<S, R>> {
-  late R _selectedValue;
+class _GraftComputationState<S extends GraftState, R> extends State<_GraftComputation<S, R>> {
+  late R _computedValue;
 
   @override
   void initState() {
     super.initState();
-    _selectedValue = widget.selector(widget.graft.state);
+    _computedValue = GraftScopeGuard.run(
+      widget.graft,
+      'graft.compute',
+      () => widget.computation(widget.graft.state),
+    );
     widget.graft.addListener(_onStateChange);
   }
 
   void _onStateChange() {
-    final newValue = widget.selector(widget.graft.state);
-    if (_selectedValue != newValue) {
+    final newValue = GraftScopeGuard.run(
+      widget.graft,
+      'graft.compute',
+      () => widget.computation(widget.graft.state),
+    );
+    if (_computedValue != newValue) {
       setState(() {
-        _selectedValue = newValue;
+        _computedValue = newValue;
       });
     }
   }
 
   @override
-  void didUpdateWidget(covariant _GraftSelector<S, R> oldWidget) {
+  void didUpdateWidget(covariant _GraftComputation<S, R> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.graft != widget.graft) {
       oldWidget.graft.removeListener(_onStateChange);
-      _selectedValue = widget.selector(widget.graft.state);
+      _computedValue = GraftScopeGuard.run(
+        widget.graft,
+        'graft.compute',
+        () => widget.computation(widget.graft.state),
+      );
       widget.graft.addListener(_onStateChange);
     }
   }
@@ -476,7 +216,27 @@ class _GraftSelectorState<S extends GraftState, R> extends State<_GraftSelector<
 
   @override
   Widget build(BuildContext context) {
-    return widget.builder(_selectedValue);
+    assert(() {
+      final ancestorScope = context.getInheritedWidgetOfExactType<InheritedGraftScope>();
+      if (ancestorScope != null && identical(ancestorScope.graft, widget.graft)) {
+        throw FlutterError(
+          '\n════════════════════════════════════════════════════════════════════════════════\n'
+          '⚠️ GRAFT ANTI-PATTERN DETECTED: NESTED ELEMENT TREE SCOPE ON ${widget.graft.runtimeType}\n'
+          '════════════════════════════════════════════════════════════════════════════════\n'
+          'A widget inside "${ancestorScope.caller}" is trying to observe the exact same ${widget.graft.runtimeType} with "graft.compute"!\n'
+          'This creates duplicate element listeners on the same controller and degrades performance.\n\n'
+          'Fix: Use the value directly inside "${ancestorScope.caller}" without wrapping it in graft.compute().\n'
+          '════════════════════════════════════════════════════════════════════════════════\n',
+        );
+      }
+      return true;
+    }());
+
+    return InheritedGraftScope(
+      graft: widget.graft,
+      caller: 'graft.compute',
+      child: widget.builder(_computedValue),
+    );
   }
 }
 
@@ -484,29 +244,37 @@ class _GraftSelectorState<S extends GraftState, R> extends State<_GraftSelector<
 extension ValueGraftWidgetsX<T> on ValueGraft<T> {
   /// A reactive slot that diffs and rebuilds only when [value] changes.
   ///
-  /// ### Example:
+  /// ### Examples:
   /// ```dart
+  /// // 1. Standalone Counter:
   /// counterGraft.slot((count) => Text('Count: $count'))
+  ///
+  /// // 2. Per-Item Micro-State in ListView.builder:
+  /// // When items in a large list hold their own ValueGraft (e.g. isLiked, quantity),
+  /// // tapping like rebuilds ONLY that tiny cell with 0 rebuilds for the parent list!
+  /// ListView.builder(
+  ///   itemCount: items.length,
+  ///   itemBuilder: (context, index) {
+  ///     final item = items[index];
+  ///     return ListTile(
+  ///       title: Text(item.title),
+  ///       trailing: item.isLiked.slot(
+  ///         (liked) => IconButton(
+  ///           icon: Icon(liked ? Icons.favorite : Icons.favorite_border),
+  ///           onPressed: () => item.isLiked.value = !item.isLiked.value,
+  ///         ),
+  ///       ),
+  ///     );
+  ///   },
+  /// )
   /// ```
   Widget slot(Widget Function(T value) builder, {Key? key}) {
+    GraftScopeGuard.verifyNotActive(this, 'graft.slot');
     return GraftSingleSlotScope<GraftValue<T>>(
       key: key,
       graft: this,
       builder: (s) => builder(s.value),
     );
   }
-
-  /// Rebuilds this widget tree with BuildContext whenever [value] changes.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// splashCubit.watch((isLoading) => isLoading ? const Spinner() : const Dashboard())
-  /// ```
-  Widget watch(Widget Function(T value) builder, {Key? key}) {
-    return ValueListenableBuilder<GraftValue<T>>(
-      key: key,
-      valueListenable: listenable,
-      builder: (_, s, __) => builder(s.value),
-    );
-  }
 }
+

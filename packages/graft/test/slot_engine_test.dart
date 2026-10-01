@@ -89,14 +89,15 @@ void main() {
     DynamicEmailWidget.buildCount = 0;
   });
 
-  testWidgets('graft.column diffs slots and rebuilds ONLY the changed slot',
+  testWidgets('graft.slots diffs slots and rebuilds ONLY the changed slot',
       (tester) async {
     final graft = ProfileGraft();
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: graft.column(
+          body: graft.slots(
+            (children) => Column(children: children),
             (s) => [
               const ConstHeaderWidget(),
               DynamicNameWidget(s.name),
@@ -144,17 +145,16 @@ void main() {
     graft.dispose();
   });
 
-  testWidgets('graft.column handles direct Text widgets with content diffing',
-      (tester) async {
+  testWidgets('graft.slots supports custom layout (e.g. Row)', (tester) async {
     final graft = ProfileGraft();
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: graft.column(
+          body: graft.slots(
+            (children) => Row(children: children),
             (s) => [
-              const Text('Static Banner'),
-              Text('Hello ${s.name}'),
+              Text('Rating: ${s.name}'),
               Text('Contact: ${s.email}'),
             ],
           ),
@@ -162,31 +162,27 @@ void main() {
       ),
     );
 
-    expect(find.text('Static Banner'), findsOneWidget);
-    expect(find.text('Hello Alice'), findsOneWidget);
+    expect(find.byType(Row), findsOneWidget);
+    expect(find.text('Rating: Alice'), findsOneWidget);
     expect(find.text('Contact: alice@example.com'), findsOneWidget);
 
-    // Update name
     graft.updateName('Charlie');
     await tester.pump();
 
-    expect(find.text('Hello Charlie'), findsOneWidget);
-    expect(find.text('Contact: alice@example.com'), findsOneWidget);
-
+    expect(find.text('Rating: Charlie'), findsOneWidget);
     graft.dispose();
   });
 
-  testWidgets(
-      'graft.listTile isolates slots and only rebuilds the changed slot',
+  testWidgets('ListTile with graft.slot isolates slots and only rebuilds the changed slot',
       (tester) async {
     final graft = ProfileGraft();
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: graft.listTile(
-            leading: (s) => DynamicNameWidget(s.name),
-            title: (s) => DynamicEmailWidget(s.email),
+          body: ListTile(
+            leading: graft.slot((s) => DynamicNameWidget(s.name)),
+            title: graft.slot((s) => DynamicEmailWidget(s.email)),
             trailing: const ConstHeaderWidget(),
           ),
         ),
@@ -224,14 +220,15 @@ void main() {
     graft.dispose();
   });
 
-  testWidgets('graft.column gracefully handles conditional list resizing',
+  testWidgets('graft.slots gracefully handles conditional list resizing with if',
       (tester) async {
     final graft = ProfileGraft();
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: graft.column(
+          body: graft.slots(
+            (children) => Column(children: children),
             (s) => [
               Text('Name: ${s.name}'),
               if (s.isVerified) const Text('Verified Badge'),
@@ -270,18 +267,18 @@ void main() {
   });
 
   testWidgets(
-      'graft.select only rebuilds when the selected slice changes, ignoring unrelated field changes',
+      'graft.compute only rebuilds when the derived value changes, ignoring unrelated field changes',
       (tester) async {
     final graft = ProfileGraft();
-    int selectorBuilds = 0;
+    int computeBuilds = 0;
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: graft.select(
+          body: graft.compute(
             (s) => s.isVerified,
             (isVerified) {
-              selectorBuilds++;
+              computeBuilds++;
               return Text(isVerified ? 'VERIFIED' : 'NOT VERIFIED');
             },
           ),
@@ -289,7 +286,7 @@ void main() {
       ),
     );
 
-    expect(selectorBuilds, 1);
+    expect(computeBuilds, 1);
     expect(find.text('NOT VERIFIED'), findsOneWidget);
 
     // 1. Update UNRELATED fields (name and email)
@@ -298,28 +295,28 @@ void main() {
     graft.updateEmail('dan@example.com');
     await tester.pump();
 
-    // Selector MUST have 0 extra rebuilds!
-    expect(selectorBuilds, 1,
-        reason: 'Selector should ignore changes to name and email');
+    // Compute MUST have 0 extra rebuilds!
+    expect(computeBuilds, 1,
+        reason: 'Compute should ignore changes to name and email');
 
-    // 2. Update SELECTED field (isVerified)
+    // 2. Update COMPUTED field (isVerified)
     graft.toggleVerified();
     await tester.pump();
 
-    expect(selectorBuilds, 2, reason: 'Selector must rebuild when selected slice changes');
+    expect(computeBuilds, 2, reason: 'Compute must rebuild when derived value changes');
     expect(find.text('VERIFIED'), findsOneWidget);
 
     graft.dispose();
   });
 
-  testWidgets('graft.layout switches seamlessly between loading and content states',
+  testWidgets('graft.slot switches seamlessly between loading and content states',
       (tester) async {
     final graft = ProfileGraft();
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: graft.layout((context, state) {
+          body: graft.slot((state) {
             if (state.isLoading) {
               return const Text('Loading...');
             }
@@ -349,4 +346,62 @@ void main() {
 
     graft.dispose();
   });
+
+  // ===========================================================================
+  // ANTI-PATTERN & MISUSE RUNTIME GUARD TESTS
+  // ===========================================================================
+
+  testWidgets('Nesting graft.slot directly inside graft.slots throws FlutterError',
+      (tester) async {
+    final graft = ProfileGraft();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.slots(
+            (children) => Column(children: children),
+            (s) => [
+              graft.slot((s) => Text(s.name)),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final error = tester.takeException();
+    expect(error, isA<FlutterError>());
+    expect(
+      (error as FlutterError).message,
+      contains('GRAFT ANTI-PATTERN DETECTED: REDUNDANT NESTING'),
+    );
+
+    graft.dispose();
+  });
+
+  testWidgets('Nesting DIFFERENT grafts inside each other succeeds without error',
+      (tester) async {
+    final graftA = ProfileGraft();
+    final graftB = ProfileGraft();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graftA.slots(
+            (children) => Column(children: children),
+            (sA) => [
+              Text('User: ${sA.name}'),
+              graftB.slot((sB) => Text('Other: ${sB.email}')),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('User: Alice'), findsOneWidget);
+    expect(find.text('Other: alice@example.com'), findsOneWidget);
+
+    graftA.dispose();
+    graftB.dispose();
+  });
 }
+
