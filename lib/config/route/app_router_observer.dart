@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:graft/graft.dart';
 import 'package:material_ui/material_ui.dart';
 
 class LogColor {
@@ -26,6 +27,7 @@ class AppRouterObserver extends AutoRouteObserver {
 
   @override
   void didPush(Route route, Route? previousRoute) {
+    GraftRouteTracker.didPush(route, previousRoute);
     final routeName = route.settings.name ?? 'UnknownRoute';
     final screen = _screenFileName(route);
 
@@ -38,6 +40,7 @@ class AppRouterObserver extends AutoRouteObserver {
 
   @override
   void didPop(Route route, Route? previousRoute) {
+    GraftRouteTracker.didPop(route, previousRoute);
     final routeName = route.settings.name ?? 'UnknownRoute';
     final screen = _screenFileName(route);
 
@@ -50,6 +53,7 @@ class AppRouterObserver extends AutoRouteObserver {
 
   @override
   void didReplace({Route? newRoute, Route? oldRoute}) {
+    GraftRouteTracker.didReplace(newRoute: newRoute, oldRoute: oldRoute);
     final oldName = oldRoute?.settings.name ?? 'UnknownRoute';
     final newName = newRoute?.settings.name ?? 'UnknownRoute';
 

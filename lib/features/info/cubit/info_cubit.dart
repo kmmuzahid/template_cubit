@@ -1,10 +1,10 @@
-import 'package:cubit_template/config/bloc/safe_cubit.dart';
 import 'package:cubit_template/features/info/cubit/info_state.dart';
 import 'package:cubit_template/features/info/repository/info_repository.dart';
 import 'package:get_it/get_it.dart';
+import 'package:graft/graft.dart';
 
-class InfoCubit extends SafeCubit<InfoState> {
-  InfoCubit() : super(InfoState());
+class InfoGraft extends Graft<InfoState> {
+  InfoGraft() : super(const InfoState());
 
   Future<void> getInfo(InfoType type) async {
     if (type == InfoType.privacyPolicy) {
@@ -29,3 +29,5 @@ class InfoCubit extends SafeCubit<InfoState> {
     emit(state.copyWith(isLoading: false, content: termsAndConditions.data));
   }
 }
+
+typedef InfoCubit = InfoGraft;

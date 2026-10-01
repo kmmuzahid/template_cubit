@@ -1,6 +1,6 @@
-import 'package:cubit_template/config/bloc/safe_cubit.dart';
+import 'package:graft/graft.dart';
 
-class SplashCubit extends SafeCubit<bool> {
+class SplashCubit extends Graft<bool> {
   SplashCubit() : super(false);
 
   void init() async {

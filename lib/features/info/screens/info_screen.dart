@@ -1,8 +1,8 @@
 import 'package:auto_route/annotations.dart';
 import 'package:core_kit/core_kit_internal.dart';
-import 'package:cubit_template/config/bloc/cubit_scope.dart';
 import 'package:cubit_template/features/info/cubit/info_cubit.dart';
 import 'package:cubit_template/features/info/cubit/info_state.dart';
+import 'package:graft/graft.dart';
 import 'package:material_ui/material_ui.dart';
 
 @RoutePage()
@@ -12,6 +12,8 @@ class InfoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final graft = context.use<InfoGraft>()..getInfo(type);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: CkAppBar(
@@ -21,15 +23,12 @@ class InfoScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 10.w),
-        child: CubitScope(
-          create: () => InfoCubit()..getInfo(type),
-          builder: (context, cubit, state) {
-            if (state.isLoading) {
-              return Center(child: CircularProgressIndicator());
-            }
-            return CkText(text: state.content);
-          },
-        ),
+        child: graft.layout((context, state) {
+          if (state.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return CkText(text: state.content);
+        }),
       ),
     );
   }
