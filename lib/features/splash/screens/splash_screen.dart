@@ -1,7 +1,7 @@
 import 'package:auto_route/annotations.dart';
 import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/color/app_color.dart';
-import 'package:cubit_template/features/auth/widgets/app_screen_layout.dart'; 
+import 'package:cubit_template/features/auth/widgets/app_screen_layout.dart';
 import 'package:cubit_template/features/splash/cubit/splash_cubit.dart';
 import 'package:graft/graft.dart';
 import 'package:material_ui/material_ui.dart';
@@ -19,10 +19,12 @@ class SplashScreen extends StatelessWidget {
       useSafeArea: false,
       padding: EdgeInsets.zero,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Stylized premium brand logo
+        child: graft.slots(
+          (children) => Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: children,
+          ),
+          (state) => [
             Container(
               padding: EdgeInsets.all(24.w),
               decoration: BoxDecoration(
@@ -65,27 +67,25 @@ class SplashScreen extends StatelessWidget {
             8.height,
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 40.w),
-              child: CkText(
-                text:
-                    'A Flutter package bundling production-ready UI widgets, responsive layout helpers, Dio-based networking, secure storage, and authentication.',
-                fontSize: 13,
-                isDescription: true,
-                fontWeight: FontWeight.w400,
-                textColor: colors.tEXT_subDark,
+              child: Text(
+                'A Flutter package bundling production-ready UI widgets, responsive layout helpers, Dio-based networking, secure storage, and authentication.',
               ),
             ),
             60.height,
-            graft.watch((isLoading) {
-              if (!isLoading) return const SizedBox.shrink();
-              return SizedBox(
-                width: 32.w,
-                height: 32.h,
-                child: CircularProgressIndicator(
-                  color: colors.ratingPremiumTags_goldAccent,
-                  strokeWidth: 2.5,
-                ),
-              );
-            }),
+            Container(
+              color: Colors.white,
+              padding: .all(10),
+              child: Text(state.name, style: TextStyle(color: Colors.black)),
+            ),
+            50.height,
+            Container(
+              color: state.time % 2 == 0 ? Colors.amberAccent : Colors.white,
+              padding: .all(10),
+              child: Text(
+                state.time.toString(),
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
           ],
         ),
       ),

@@ -60,8 +60,21 @@ class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget {
 
   /// Compares two widgets for content equivalence to prevent unnecessary slot rebuilds.
   ///
-  /// Evaluates custom [GraftEquivalent] implementations first, followed by structural
-  /// property equality on common built-in Flutter widgets ([Text], [Icon], [SizedBox], [Padding]).
+  /// ### How Slot Diffing Works:
+  /// 1. **`const` Widgets:** Any widget marked `const` is skipped immediately with **0 rebuilds**
+  ///    via pointer identity (`identical(a, b)`).
+  /// 2. **Custom Equivalence:** Evaluates [GraftEquivalent.isEquivalentTo] or `operator ==`.
+  /// 3. **Supported Primitives:** Recursively property-diffed for [Text], [Icon], [SizedBox],
+  ///    [Padding], [Container], [ColoredBox], and [Align]/[Center].
+  ///
+  /// ⚠️ **Depth Limits & Arbitrary Widgets:**
+  /// Widget-diffing can only inspect properties of widgets it explicitly understands.
+  /// If a child contains unhandled widgets (e.g. `Card`, `InkWell`, `ListTile`, or 3rd-party widgets
+  /// like `CkText`), or has inline closures (`onTap: () => ...`), widget equality fails and that
+  /// slot rebuilds.
+  ///
+  /// 👉 For arbitrary widgets, deep hierarchies, or widgets with callbacks, use **`graft.compute(...)`**
+  /// to achieve guaranteed 0-rebuild data-driven isolation.
   static bool isWidgetEquivalent(Widget a, Widget b) {
     if (a.runtimeType != b.runtimeType) return false;
     if (a.key != b.key) return false;
@@ -95,7 +108,41 @@ class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget {
 
     // Padding comparison
     if (a is Padding && b is Padding) {
-      return a.padding == b.padding;
+      final childEqual = (a.child == null && b.child == null) ||
+          (a.child != null && b.child != null && isWidgetEquivalent(a.child!, b.child!));
+      return childEqual && a.padding == b.padding;
+    }
+
+    // Container comparison
+    if (a is Container && b is Container) {
+      final childEqual = (a.child == null && b.child == null) ||
+          (a.child != null && b.child != null && isWidgetEquivalent(a.child!, b.child!));
+      if (!childEqual) return false;
+
+      return a.color == b.color &&
+          a.padding == b.padding &&
+          a.margin == b.margin &&
+          a.alignment == b.alignment &&
+          a.decoration == b.decoration &&
+          a.constraints == b.constraints &&
+          a.clipBehavior == b.clipBehavior;
+    }
+
+    // ColoredBox comparison
+    if (a is ColoredBox && b is ColoredBox) {
+      final childEqual = (a.child == null && b.child == null) ||
+          (a.child != null && b.child != null && isWidgetEquivalent(a.child!, b.child!));
+      return childEqual && a.color == b.color;
+    }
+
+    // Align & Center comparison
+    if (a is Align && b is Align) {
+      final childEqual = (a.child == null && b.child == null) ||
+          (a.child != null && b.child != null && isWidgetEquivalent(a.child!, b.child!));
+      return childEqual &&
+          a.alignment == b.alignment &&
+          a.widthFactor == b.widthFactor &&
+          a.heightFactor == b.heightFactor;
     }
 
     // Direct object equality if overridden

@@ -1,11 +1,27 @@
+import 'dart:async';
+
 import 'package:graft/graft.dart';
 
-class SplashCubit extends ValueGraft<bool> {
-  SplashCubit() : super(false);
+class SplashCubit extends Graft<ChildSplashCubit> {
+  SplashCubit() : super(ChildSplashCubit(name: 'Muzahid', time: 1));
 
   void init() async {
-    value = true;
-    await Future.delayed(const Duration(seconds: 2));
-    value = false;
+    await Future.delayed(const Duration(seconds: 1));
+    state
+      ..name = "Km Muzahid"
+      ..update();
+    await Future.delayed(const Duration(seconds: 1));
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      state
+        ..time += 1
+        ..update();
+    });
   }
+}
+
+class ChildSplashCubit extends GraftState {
+  String name;
+  int time;
+
+  ChildSplashCubit({required this.name, required this.time});
 }

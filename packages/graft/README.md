@@ -313,6 +313,17 @@ class UserCard extends StatelessWidget implements GraftEquivalent {
 }
 ```
 
+### ⚠️ Understanding Slot Diffing vs. `graft.compute`:
+
+| Mechanism | How It Works | Best For |
+| :--- | :--- | :--- |
+| **`const` Widgets** | Pointer identity match (`identical(a, b)`) | Static headers, banners, dividers (**0 rebuilds**) |
+| **Auto-Diffed Primitives** | Recursive property inspection for `Text`, `Icon`, `SizedBox`, `Padding`, `Container`, `ColoredBox`, `Align` | Common leaf widgets in `graft.slots` (**0 rebuilds**) |
+| **`graft.compute(...)`** | **Data-driven selector** (`prevData == nextData`) | Deeply nested hierarchies (`Card`, `InkWell`), widgets with callbacks (`onTap`), and 3rd-party widgets |
+
+> **Rule of Thumb:**
+> If a slot contains arbitrary 3rd-party widgets, complex nested cards, or buttons with inline closures (`onPressed: () => ...`), use **`graft.compute`**. Because `compute` checks the raw data value first, it completely skips building the entire subtree if the data hasn't changed!
+
 ---
 
 ## 📜 Working with Lists (`ListView.builder`)

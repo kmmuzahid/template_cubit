@@ -32,7 +32,7 @@ class AppCoreKitConfig extends CoreKitConfig
 
   /// Disable enforced splash delay for faster navigation
   @override
-  int get splashDelayMs => 3000;
+  int get splashDelayMs => 30000000000;
 
   /// Custom initialization tasks run during the 3-second splash delay.
   /// Use this to register dependencies, initialize services, etc.

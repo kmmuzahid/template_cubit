@@ -92,10 +92,14 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   ///   ],
   /// )
   /// ```
-  ///
-  /// ⚠️ **Avoid Misuse:**
-  /// Do **NOT** wrap children inside `graft.slots` with `graft.slot(...)`!
-  /// Every item in the list is **already** an isolated diffing slot automatically.
+  /// ⚠️ **How Slot Diffing Works:**
+  /// - `const` children: **0 rebuilds** for any widget in Flutter via pointer identity.
+  /// - Built-in primitives (`Text`, `Icon`, `SizedBox`, `Padding`, `Container`, `ColoredBox`, `Align`):
+  ///   automatically deep-diffed.
+  /// - If a slot contains arbitrary 3rd-party widgets or widgets with callbacks (`onTap: () => ...`),
+  ///   use **`graft.compute`** to guarantee 0-rebuild data-driven isolation.
+  /// - Do **NOT** wrap children inside `graft.slots` with `graft.slot(...)`!
+  ///   Every item in the list is **already** an isolated diffing slot automatically.
   Widget slots(
     Widget Function(List<Widget> children) layout,
     List<Widget> Function(S state) children, {
@@ -130,12 +134,13 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   /// )
   /// ```
   ///
-  /// ⚠️ **Avoid Misuse:**
-  /// - Do **NOT** wrap simple widgets like `Text(s.name)` with `compute`; `graft.slot` and
-  ///   `graft.slots` already do fast widget diffing with zero computation ceremony.
-  /// - Use `compute` primarily for **heavy widget subtrees** or **derived computed values**
-  ///   (e.g., `(s) => s.items.length` or `(s) => s.total > 100`) where you want to prevent
-  ///   the builder closure from running entirely.
+  /// 💡 **When to use `graft.compute`:**
+  /// - For **deeply nested subtrees**, **custom/3rd-party widgets** (e.g. CoreKit, Card, ListTile),
+  ///   or widgets with closures (`onTap: () => ...`), [compute] checks the raw data first,
+  ///   guaranteeing 0-rebuild isolation without needing widget-diffing.
+  /// - For **derived computed values** (e.g. `(s) => s.items.length` or `(s) => s.total > 100`).
+  /// - For simple widgets like `Text(s.name)`, `graft.slot` and `graft.slots` already do fast
+  ///   diffing with zero ceremony.
   Widget compute<R>(
     R Function(S state) computation,
     Widget Function(R value) builder, {

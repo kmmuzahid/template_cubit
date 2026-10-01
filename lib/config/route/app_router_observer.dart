@@ -21,7 +21,7 @@ class AppRouterObserver extends AutoRouteObserver {
   }
 
   void _log(String message) {
-    // Uses print so it's completely plug-and-play.
+    // ignore: avoid_print
     print(message);
   }
 

@@ -1,5 +1,4 @@
 import 'package:core_kit/core_kit.dart';
-import 'package:material_ui/material_ui.dart';
 
 mixin InputConfig on CoreKitConfig {
   @override

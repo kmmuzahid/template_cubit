@@ -7,6 +7,7 @@ class SafeBloc<Event, State> extends Bloc<Event, State> {
   @override
   void emit(State state) {
     if (!isClosed) {
+      // ignore: invalid_use_of_visible_for_testing_member
       super.emit(state);
     } else {
       ckWarning('Bloc is closed, cannot emit state.', tag: 'Safe Bloc');

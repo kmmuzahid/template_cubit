@@ -39,7 +39,7 @@ lib/
 │
 ├── features/         # Modular feature-by-feature layout (auth, common, home, info, splash)
 ├── gen/              # Generated assets & resources (flutter_gen)
-├── my_app..dart      # Theme setup, MultiBlocProvider setup, and MaterialApp registration
+├── my_app.dart       # Theme setup, MultiBlocProvider setup, and MaterialApp registration
 └── main.dart         # Application entry point
 ```
 

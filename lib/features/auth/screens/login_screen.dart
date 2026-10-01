@@ -135,7 +135,7 @@ class LoginScreen extends StatelessWidget {
                             onTap: () {
                               if (formKey.validateAndSave()) {
                                 ckAuth.signIn(
-                                  username: entity.username ?? '',
+                                  account: entity.username ?? '',
                                   password: entity.password ?? '',
                                 );
                               }
