@@ -68,6 +68,63 @@ class UserGraft extends Graft<UserState> {
   }
 }
 
+// -----------------------------------------------------------------------------
+// Pattern A Models: Standard List (Single Graft State)
+// -----------------------------------------------------------------------------
+
+class TaskItem {
+  final String id;
+  final String title;
+  final bool isDone;
+  TaskItem({required this.id, required this.title, required this.isDone});
+}
+
+class TaskListState extends GraftState {
+  List<TaskItem> tasks;
+  TaskListState({required this.tasks});
+}
+
+class TaskListGraft extends Graft<TaskListState> {
+  TaskListGraft()
+      : super(TaskListState(tasks: [
+          TaskItem(id: '1', title: 'Install Graft package', isDone: true),
+          TaskItem(id: '2', title: 'Learn graft.slot and graft.slots', isDone: true),
+          TaskItem(id: '3', title: 'Explore ListView with and without ValueGraft', isDone: false),
+          TaskItem(id: '4', title: 'Build high-performance Flutter app', isDone: false),
+        ]));
+
+  void toggleTask(String id) {
+    state
+      ..tasks = state.tasks
+          .map((t) => t.id == id ? TaskItem(id: t.id, title: t.title, isDone: !t.isDone) : t)
+          .toList()
+      ..update();
+  }
+
+  void addTask(String title) {
+    state
+      ..tasks = [
+        ...state.tasks,
+        TaskItem(id: DateTime.now().millisecondsSinceEpoch.toString(), title: title, isDone: false),
+      ]
+      ..update();
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Pattern B Models: Micro-State (Per-Item ValueGraft)
+// -----------------------------------------------------------------------------
+
+class ProductItem {
+  final String title;
+  final ValueGraft<bool> isLiked;
+  final ValueGraft<int> quantity;
+
+  ProductItem({required this.title, bool liked = false, int count = 1})
+      : isLiked = ValueGraft<bool>(liked),
+        quantity = ValueGraft<int>(count);
+}
+
 // =============================================================================
 // 3. MAIN ENTRY POINT & APP SETUP
 // =============================================================================
@@ -76,8 +133,9 @@ void main() {
   // 1. Enable colorized console dev logging:
   Graft.observer = GraftDevObserver();
 
-  // 2. Register Graft factory in DI:
+  // 2. Register Graft factories in DI:
   GraftRegistry.register(UserGraft.new);
+  GraftRegistry.register(TaskListGraft.new);
 
   runApp(const GraftExampleApp());
 }
@@ -120,8 +178,8 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Graft Showcase 🌱'),
         actions: [
-          // Select only notifications count:
-          graft.select(
+          // Pre-flight derived computation: graft.compute
+          graft.compute(
             (s) => s.notificationCount,
             (count) => IconButton(
               icon: Badge(
@@ -139,15 +197,17 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // =================================================================
-            // Multi-Child Slot Diffing: graft.column
+            // Multi-Child Slot Diffing: graft.slots
             // =================================================================
             const _SectionHeader(
-              title: '1. Multi-Child Slot Diffing (graft.column)',
+              title: '1. Multi-Child Slot Diffing (graft.slots)',
               subtitle: 'Only changed slots rebuild! Const widgets have 0 rebuilds.',
             ),
             const SizedBox(height: 8),
 
-            graft.column((s) => [
+            graft.slots(
+              (children) => Column(children: children),
+              (s) => [
               // Const widget: Flutter skips re-rendering entirely (0 rebuilds)
               const Card(
                 color: Colors.deepPurple,
@@ -230,34 +290,34 @@ class HomeScreen extends StatelessWidget {
             const Divider(),
 
             // =================================================================
-            // Non-List Widgets: graft.listTile & graft.card
+            // Standard Flutter Widgets Composed with graft.slot
             // =================================================================
             const _SectionHeader(
-              title: '2. Non-List Slots (graft.listTile & graft.card)',
-              subtitle: 'Each slot diffs independently without whole-widget rebuilds.',
+              title: '2. Standard Widgets Composed with graft.slot',
+              subtitle: 'Place graft.slot inside any Flutter widget (ListTile, Card, etc.).',
             ),
             const SizedBox(height: 8),
 
-            graft.listTile(
-              leading: (s) => CircleAvatar(
+            ListTile(
+              leading: graft.slot((s) => CircleAvatar(
                 backgroundColor: s.isVerified ? Colors.green : Colors.grey,
                 child: Text(s.name.isNotEmpty ? s.name[0] : '?'),
-              ),
-              title: (s) => Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: (s) => Text(s.email),
+              )),
+              title: graft.slot((s) => Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold))),
+              subtitle: graft.slot((s) => Text(s.email)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             ),
 
             const SizedBox(height: 8),
 
-            graft.card(
+            Card(
               color: Colors.deepPurple.shade50,
-              child: (s) => Padding(
+              child: graft.slot((s) => Padding(
                 padding: const EdgeInsets.all(12),
                 child: Text(
                   'Card slot diffed: ${s.name} (${s.isVerified ? "Verified" : "Unverified"})',
                 ),
-              ),
+              )),
             ),
 
             const SizedBox(height: 24),
@@ -296,6 +356,46 @@ class HomeScreen extends StatelessWidget {
                 );
               },
             ),
+
+            const SizedBox(height: 24),
+            const Divider(),
+
+            // =================================================================
+            // 4. ListView.builder Examples (With & Without ValueGraft)
+            // =================================================================
+            const _SectionHeader(
+              title: '4. ListView.builder Examples',
+              subtitle: 'Compare standard single-Graft lists vs. per-item ValueGraft.',
+            ),
+            const SizedBox(height: 12),
+
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal.shade700,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              icon: const Icon(Icons.format_list_bulleted),
+              label: const Text('Standard List (Single Graft / Without ValueGraft)'),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const StandardListScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              icon: const Icon(Icons.bolt),
+              label: const Text('Micro-State List (Per-Item ValueGraft)'),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ValueGraftListScreen()),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -321,7 +421,9 @@ class EditProfileScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: graft.column((s) => [
+        child: graft.slots(
+          (children) => Column(children: children),
+          (s) => [
           const Text(
             'This screen called context.use<UserGraft>() and borrowed the existing instance from HomeScreen.',
             style: TextStyle(fontSize: 15),
@@ -374,7 +476,9 @@ class IsolatedProfileScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: graft.column((s) => [
+        child: graft.slots(
+          (children) => Column(children: children),
+          (s) => [
           const Text(
             'This screen used context.create<UserGraft>() to create a completely independent instance.',
             style: TextStyle(fontSize: 15),
@@ -387,6 +491,138 @@ class IsolatedProfileScreen extends StatelessWidget {
             child: const Text('Change (Does NOT Affect Home)'),
           ),
         ]),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 7. SCREEN 4: STANDARD LISTVIEW (Without ValueGraft — Single Graft)
+// =============================================================================
+
+class StandardListScreen extends StatelessWidget {
+  const StandardListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Borrow or create route-scoped TaskListGraft:
+    final graft = context.use<TaskListGraft>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Standard List (Single Graft)'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add Task',
+            onPressed: () {
+              graft.addTask('New Task #${graft.state.tasks.length + 1}');
+            },
+          ),
+        ],
+      ),
+      body: graft.slot((s) => ListView.builder(
+        padding: const EdgeInsets.all(8),
+        itemCount: s.tasks.length,
+        itemBuilder: (context, index) {
+          final task = s.tasks[index];
+          return Card(
+            child: ListTile(
+              leading: Checkbox(
+                value: task.isDone,
+                onChanged: (_) => graft.toggleTask(task.id),
+              ),
+              title: Text(
+                task.title,
+                style: TextStyle(
+                  decoration: task.isDone ? TextDecoration.lineThrough : null,
+                  color: task.isDone ? Colors.grey : null,
+                ),
+              ),
+              trailing: Chip(
+                label: Text(task.isDone ? 'Done' : 'Pending'),
+                backgroundColor: task.isDone ? Colors.green.shade100 : Colors.amber.shade100,
+              ),
+            ),
+          );
+        },
+      )),
+    );
+  }
+}
+
+// =============================================================================
+// 8. SCREEN 5: MICRO-STATE LISTVIEW (With ValueGraft per item)
+// =============================================================================
+
+class ValueGraftListScreen extends StatefulWidget {
+  const ValueGraftListScreen({super.key});
+
+  @override
+  State<ValueGraftListScreen> createState() => _ValueGraftListScreenState();
+}
+
+class _ValueGraftListScreenState extends State<ValueGraftListScreen> {
+  // Each product holds its own independent ValueGraft instances:
+  final List<ProductItem> products = List.generate(
+    25,
+    (i) => ProductItem(title: 'Item #${i + 1} (Flutter Widget)', liked: i % 2 == 0),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Micro-State List (ValueGraft)'),
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(8),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          final product = products[index];
+
+          return Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.deepPurple.shade100,
+                child: Text('${index + 1}'),
+              ),
+              title: Text(product.title),
+              subtitle: product.quantity.slot(
+                // 💥 Only this quantity label rebuilds when incremented/decremented!
+                (qty) => Text('In Cart: $qty units'),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline, size: 20),
+                    onPressed: () {
+                      if (product.quantity.value > 1) {
+                        product.quantity.value--;
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    onPressed: () => product.quantity.value++,
+                  ),
+                  const SizedBox(width: 8),
+                  product.isLiked.slot(
+                    // 💥 Only this heart icon rebuilds when toggled!
+                    (isLiked) => IconButton(
+                      icon: Icon(
+                        isLiked ? Icons.favorite : Icons.favorite_border,
+                        color: isLiked ? Colors.red : null,
+                      ),
+                      onPressed: () => product.isLiked.value = !product.isLiked.value,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
