@@ -5,15 +5,34 @@ import '../core/graft_state.dart';
 
 /// Declarative testing utility for [Graft], modeled after `blocTest`.
 ///
-/// Executes pure Dart unit tests with synchronous precision and sub-millisecond speed.
+/// ### Why use graftTest?
+/// - **Blazing Fast (Sub-Millisecond):** Executes pure Dart unit tests without pumping widgets or inflating elements.
+/// - **Clean Structure:** Standardizes tests into declarative phases: `build`, `setUp`, `act`, `expect`, `verify`, and `tearDown`.
+/// - **Automatic Teardown:** Automatically removes listeners and disposes the [Graft] instance after the test finishes, preventing memory leaks.
+/// - **Timeouts & Delays:** Easily handles asynchronous debounce or network latencies via [wait].
 ///
-/// Example:
+/// ### Parameters:
+/// - [description]: The name and explanation of the test case.
+/// - [build]: A factory closure returning a fresh instance of the [Graft] under test.
+/// - [setUp]: Optional hook executed before [act] to set up mocks, stubs, or seed state.
+/// - [act]: Optional action closure to trigger business logic methods on the Graft.
+/// - [wait]: Optional [Duration] to wait (e.g. for streams or debounce timers) before running expectations.
+/// - [expect]: Optional closure returning a Matcher or `List` of expected emitted state objects.
+/// - [verify]: Optional verification hook to perform post-execution assertions (e.g. mock calls or final state values).
+/// - [tearDown]: Optional cleanup hook executed after testing completes.
+///
+/// ### Example:
 /// ```dart
 /// graftTest<UserGraft, UserState>(
-///   'emits updated user when called',
+///   'updates profile name and notifies listeners',
 ///   build: () => UserGraft(),
-///   act: (graft) => graft.fetch(),
-///   verify: (graft) => expect(graft.state.name, 'Alice'),
+///   act: (graft) => graft.updateName('Alice'),
+///   expect: () => [
+///     isA<UserState>().having((s) => s.name, 'name', 'Alice'),
+///   ],
+///   verify: (graft) {
+///     expect(graft.state.name, 'Alice');
+///   },
 /// );
 /// ```
 void graftTest<G extends Graft<S>, S extends GraftState>(
@@ -68,3 +87,4 @@ void graftTest<G extends Graft<S>, S extends GraftState>(
     tags: tags,
   );
 }
+

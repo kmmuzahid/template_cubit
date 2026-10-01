@@ -10,11 +10,24 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   // MULTI-CHILD LAYOUTS (AUTOMATIC SLOT DIFFING)
   // ===========================================================================
 
-  /// A reactive [Column] whose slots diff independently.
+  /// A high-performance reactive [Column] whose child slots diff independently.
   ///
-  /// - `const` children: **0 rebuilds**
-  /// - Children whose state properties didn't change: **0 rebuilds**
-  /// - Children with changed state: **Only that slot rebuilds!**
+  /// ### Why use `graft.column(...)`?
+  /// In standard Flutter, when state changes, an entire `Column` and all its children rebuild.
+  /// `graft.column` automatically isolates each child into an independent slot:
+  /// - `const` children: **0 rebuilds** (completely skipped by Flutter's render pipeline).
+  /// - Children with unchanged properties: **0 rebuilds** (equivalence match).
+  /// - Children with changed properties: **Only that specific child rebuilds!**
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.column((s) => [
+  ///   const CardHeader(),             // 0 rebuilds (const)
+  ///   Text(s.name),                   // Rebuilds ONLY when s.name changes
+  ///   Text(s.email),                  // 0 rebuilds if email didn't change
+  ///   if (s.isVerified) const Badge(),
+  /// ])
+  /// ```
   Widget column(
     List<Widget> Function(S state) children, {
     Key? key,
@@ -41,7 +54,20 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
     );
   }
 
-  /// A reactive [Row] whose slots diff independently.
+  /// A high-performance reactive [Row] whose child slots diff independently.
+  ///
+  /// ### Why use `graft.row(...)`?
+  /// Like `graft.column`, only slots whose properties actually changed will rebuild.
+  /// `const` widgets and unchanged slots experience **0 rebuilds**.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.row((s) => [
+  ///   const Icon(Icons.star),         // 0 rebuilds
+  ///   Text('${s.rating}'),            // Rebuilds ONLY when rating changes
+  ///   Text('(${s.reviewCount})'),     // 0 rebuilds if reviewCount is unchanged
+  /// ])
+  /// ```
   Widget row(
     List<Widget> Function(S state) children, {
     Key? key,
@@ -68,7 +94,23 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
     );
   }
 
-  /// A reactive [Stack] whose slots diff independently.
+  /// A high-performance reactive [Stack] whose child slots diff independently.
+  ///
+  /// ### Why use `graft.stack(...)`?
+  /// Ideal for layered views, overlays, badges, and floating actions.
+  /// Changing a foreground badge slot does NOT rebuild background image layers.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.stack((s) => [
+  ///   const BackgroundBanner(),       // 0 rebuilds (heavy background cached)
+  ///   Positioned(
+  ///     top: 10,
+  ///     right: 10,
+  ///     child: Text('${s.badgeCount}'), // Rebuilds ONLY when badgeCount changes
+  ///   ),
+  /// ])
+  /// ```
   Widget stack(
     List<Widget> Function(S state) children, {
     Key? key,
@@ -91,7 +133,23 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
     );
   }
 
-  /// A reactive [Wrap] whose slots diff independently.
+  /// A high-performance reactive [Wrap] whose child slots diff independently.
+  ///
+  /// ### Why use `graft.wrap(...)`?
+  /// Perfect for chips, tags, and dynamic filters.
+  /// Modifying or selecting one tag does not rebuild the other tags in the flow.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.wrap((s) => [
+  ///   for (final tag in s.availableTags)
+  ///     FilterChip(
+  ///       label: Text(tag.name),
+  ///       selected: tag.isSelected,
+  ///       onSelected: (_) => graft.toggleTag(tag.id),
+  ///     ),
+  /// ])
+  /// ```
   Widget wrap(
     List<Widget> Function(S state) children, {
     Key? key,
@@ -128,7 +186,24 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   // NON-LIST & NAMED-SLOT WIDGETS
   // ===========================================================================
 
-  /// A reactive [ListTile] whose slots rebuild independently.
+  /// A high-performance reactive [ListTile] whose named slots rebuild independently.
+  ///
+  /// ### Why use `graft.listTile(...)`?
+  /// In standard Flutter, updating a user's status or badge inside a `ListTile` forces the
+  /// entire tile (avatar, title, subtitle, trailing icon) to repaint.
+  /// `graft.listTile` isolates `leading`, `title`, and `subtitle` into separate slots:
+  /// - Changing `title` does NOT rebuild `leading` or `subtitle`.
+  /// - Constant `trailing` widgets experience **0 rebuilds**.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.listTile(
+  ///   leading: (s) => CircleAvatar(child: Text(s.name[0])),
+  ///   title: (s) => Text(s.name),
+  ///   subtitle: (s) => Text(s.statusText), // Rebuilds ONLY when statusText changes
+  ///   trailing: const Icon(Icons.chevron_right), // 0 rebuilds
+  /// )
+  /// ```
   Widget listTile({
     Key? key,
     Widget Function(S state)? leading,
@@ -186,6 +261,10 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   }
 
   /// A reactive [Padding] widget whose child only rebuilds when its content changes.
+  ///
+  /// ### Why use `graft.padding(...)`?
+  /// Wraps an isolated diffing slot with padding, ensuring the padding layout element
+  /// remains stable across emissions.
   Widget padding({
     Key? key,
     required EdgeInsetsGeometry padding,
@@ -199,6 +278,9 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   }
 
   /// A reactive [Center] widget whose child only rebuilds when its content changes.
+  ///
+  /// ### Why use `graft.center(...)`?
+  /// Centers an isolated diffing slot without rebuilding the centering layout.
   Widget center({
     Key? key,
     double? widthFactor,
@@ -214,6 +296,10 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   }
 
   /// A reactive [Card] widget whose child only rebuilds when its content changes.
+  ///
+  /// ### Why use `graft.card(...)`?
+  /// Houses an isolated diffing slot inside a Material Card. Material styling, shadows,
+  /// and elevation stay cached while dynamic interior slots diff independently.
   Widget card({
     Key? key,
     Color? color,
@@ -246,7 +332,20 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   // FULL PAGE / CONDITIONAL STATE MACHINE (LOADING, ERROR, SUCCESS)
   // ===========================================================================
 
-  /// Builds a reactive UI that switches depending on full page state (e.g. Loading / Error / Data).
+  /// Builds a reactive UI for full-page state switching (e.g. Loading / Error / Content).
+  ///
+  /// ### Why use `graft.layout(...)`?
+  /// When your screen represents mutually exclusive full-page states (such as an initial spinner,
+  /// a network failure screen, or loaded dashboard), use `graft.layout` to switch seamlessly.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.layout((context, s) {
+  ///   if (s.isLoading) return const LoadingSpinner();
+  ///   if (s.error != null) return ErrorBanner(message: s.error!);
+  ///   return ContentDashboard(user: s.user);
+  /// })
+  /// ```
   Widget layout(
     Widget Function(BuildContext context, S state) builder, {
     Key? key,
@@ -262,8 +361,16 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   // UNIVERSAL ADAPTER (SELF-INVENTED / 3RD-PARTY WIDGETS)
   // ===========================================================================
 
-  /// Universal reactive adapter. Wraps any self-invented or 3rd-party widget
-  /// so it automatically rebuilds whenever this [Graft]'s state changes.
+  /// Universal reactive adapter. Rebuilds the returned widget whenever [state] changes.
+  ///
+  /// ### Why use `graft.watch(...)`?
+  /// Use this when integrating 3rd-party widgets, complex canvas paints, or custom widgets
+  /// that need access to the full state object on every update.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.watch((s) => Complex3rdPartyChart(data: s.chartData))
+  /// ```
   Widget watch(Widget Function(S state) builder, {Key? key}) {
     return ValueListenableBuilder<S>(
       key: key,
@@ -272,9 +379,16 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
     );
   }
 
-  /// Creates a reactive single-child slot that diffs its content.
+  /// Creates an isolated single-child slot that diffs its content.
   ///
-  /// Rebuilds ONLY when the widget returned by [builder] changes properties or identity.
+  /// ### Why use `graft.slot(...)`?
+  /// Rebuilds **ONLY** when the widget returned by [builder] changes properties or identity.
+  /// Unrelated state changes in other fields will result in **0 rebuilds** for this slot.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.slot((s) => Text('Welcome, ${s.username}!'))
+  /// ```
   Widget slot(Widget Function(S state) builder, {Key? key}) {
     return GraftSingleSlotScope<S>(
       key: key,
@@ -283,7 +397,18 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
     );
   }
 
-  /// Selects a specific sub-slice [R] of state and only rebuilds when that slice changes.
+  /// Selects a specific sub-slice [R] of state and rebuilds **ONLY** when that slice changes.
+  ///
+  /// ### Why use `graft.select(...)`?
+  /// Prevents unnecessary rebuilds when you only care about a single property or computed value.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// graft.select(
+  ///   (s) => s.notificationCount, // Only listens to notificationCount changes
+  ///   (count) => Badge(label: Text('$count')),
+  /// )
+  /// ```
   Widget select<R>(
     R Function(S state) selector,
     Widget Function(R value) builder, {
@@ -357,7 +482,12 @@ class _GraftSelectorState<S extends GraftState, R> extends State<_GraftSelector<
 
 /// Extension on [ValueGraft<T>] providing clean, single-value reactive widget builders.
 extension ValueGraftWidgetsX<T> on ValueGraft<T> {
-  /// A reactive slot that rebuilds only when [value] changes.
+  /// A reactive slot that diffs and rebuilds only when [value] changes.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// counterGraft.slot((count) => Text('Count: $count'))
+  /// ```
   Widget slot(Widget Function(T value) builder, {Key? key}) {
     return GraftSingleSlotScope<GraftValue<T>>(
       key: key,
@@ -366,7 +496,12 @@ extension ValueGraftWidgetsX<T> on ValueGraft<T> {
     );
   }
 
-  /// Rebuilds this widget tree whenever [value] changes.
+  /// Rebuilds this widget tree with BuildContext whenever [value] changes.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// splashCubit.watch((isLoading) => isLoading ? const Spinner() : const Dashboard())
+  /// ```
   Widget watch(Widget Function(T value) builder, {Key? key}) {
     return ValueListenableBuilder<GraftValue<T>>(
       key: key,

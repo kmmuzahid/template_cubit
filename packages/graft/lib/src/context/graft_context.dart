@@ -4,18 +4,36 @@ import '../di/graft_registry.dart';
 import '../route/graft_route_tracker.dart';
 
 /// Extension on [BuildContext] providing ergonomic Graft lookups and route-stack lifecycle management.
+///
+/// ### Why use BuildContext extensions?
+/// - **Clean Screen Code:** Access controllers directly from `BuildContext` without wrappers:
+///   `final userGraft = context.use<UserGraft>();`
+/// - **Route Scoping:** Automatically scopes instances to the current route stack.
+/// - **Leak Prevention:** Instances created with `context.use<T>()` or `context.create<T>()`
+///   are automatically disposed when their owner route pops.
 extension GraftContextX on BuildContext {
-  /// Resolves a [Graft] of type [T].
+  /// Resolves an active [Graft] of type [T] across the navigation stack, or creates one if not found.
   ///
-  /// - If [T] was registered with `isNewCreate: false`, returns the permanent
-  ///   global singleton (never re-created, never route-disposed).
-  /// - Otherwise, searches the current route and active predecessor routes in the navigation stack.
-  /// - If an active instance exists, it is reused.
-  /// - If not found, a new instance is created and owned by the current route (auto-disposed when owner pops).
+  /// ### Why use `context.use<T>()`?
+  /// - **Route Stack Sharing:** If an ancestor screen in the navigation stack already created [T],
+  ///   this screen **borrows** the existing instance.
+  /// - **Automatic Ownership & Disposal:** The first screen that calls `context.use<T>()` becomes
+  ///   the **Owner**. When that owner screen pops off the navigation stack, [T] is automatically disposed.
+  ///   Borrower screens can push and pop freely without disposing the owner's instance.
+  /// - **Global Singletons:** If [T] was registered with `registerSingleton` or `allowNew: false`,
+  ///   always returns the permanent, un-scoped singleton instance.
+  /// - **Zero Boilerplate:** No lambdas, no wrappers, just `final graft = context.use<MyGraft>();`.
   ///
-  /// Example:
+  /// ### Example:
   /// ```dart
-  /// final graft = context.use<InfoGraft>();
+  /// class EditProfileScreen extends StatelessWidget {
+  ///   @override
+  ///   Widget build(BuildContext context) {
+  ///     // Borrows existing ProfileGraft from HomeScreen in the route stack:
+  ///     final graft = context.use<ProfileGraft>();
+  ///     return Scaffold(...);
+  ///   }
+  /// }
   /// ```
   T use<T extends Graft>([T Function()? factory]) {
     // If registered with isNewCreate: false, always return the permanent singleton
@@ -41,14 +59,20 @@ extension GraftContextX on BuildContext {
     return newInstance;
   }
 
-  /// Force-creates a brand-new [Graft] of type [T] owned by the current route.
+  /// Force-creates a brand-new, isolated [Graft] of type [T] owned exclusively by the current route.
   ///
-  /// - Note: If [T] was registered with `isNewCreate: false`, creating a new instance is
-  ///   disabled and this will safely return the permanent singleton instead.
+  /// ### Why use `context.create<T>()`?
+  /// - Use this when you specifically do **NOT** want to inherit or borrow an active instance from
+  ///   predecessor routes in the stack (e.g., an isolated wizard, comparison flow, or temporary form).
+  /// - The current screen becomes the sole owner of this fresh instance and disposes it upon popping.
   ///
-  /// Example:
+  /// *Note: If [T] was registered as a Global Singleton (`registerSingleton`), creation of new
+  /// instances is disabled and this safely returns the singleton instead.*
+  ///
+  /// ### Example:
   /// ```dart
-  /// final graft = context.create<InfoGraft>();
+  /// // Creates a brand new, isolated ProfileGraft instance:
+  /// final graft = context.create<ProfileGraft>();
   /// ```
   T create<T extends Graft>([T Function()? factory]) {
     // If registered with isNewCreate: false, new creations are disabled; return singleton
@@ -66,9 +90,18 @@ extension GraftContextX on BuildContext {
     return newInstance;
   }
 
-  /// Looks up an existing [Graft] of type [T] in the current route stack.
+  /// Looks up an existing [Graft] of type [T] in the current route stack without creating one.
   ///
-  /// Throws a [StateError] if no instance is active.
+  /// ### Why use `context.find<T>()`?
+  /// - Use when you want to read or trigger actions on an existing ancestor Graft without
+  ///   ever creating or owning an instance on the current screen.
+  /// - Throws a descriptive [StateError] if no active instance of [T] is found in the route stack.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// // Throws if no ancestor created AuthGraft:
+  /// final auth = context.find<AuthGraft>();
+  /// ```
   T find<T extends Graft>() {
     if (!GraftRegistry.canCreateNew<T>()) {
       return GraftRegistry.getOrCreateSingleton<T>();

@@ -1,20 +1,31 @@
 import 'graft.dart';
 import 'graft_state.dart';
 
-/// Single-value state container that extends [GraftState].
+/// Single-value state container that adapts primitive types (`int`, `bool`, `String`)
+/// or enums into [GraftState].
 class GraftValue<T> extends GraftState {
+  /// The underlying value.
   T value;
 
+  /// Creates a [GraftValue] holding [value].
   GraftValue(this.value);
 
   @override
   String toString() => value.toString();
 }
 
-/// A specialized [Graft] for managing single primitive or enum values without writing a custom state class.
+/// A specialized [Graft] for managing single primitive, enum, or standalone values
+/// without needing to define a separate state class.
 ///
-/// Example:
+/// ### Why use ValueGraft?
+/// - **Zero State Class:** Ideal when you only need to track a single `int`, `bool`, `String`, or `enum`.
+/// - **Direct Mutation:** Mutate with `value++` or `value = newValue` without writing `state..update()`.
+/// - **Native UI Interop:** Works seamlessly with `graft.slot((val) => Text('$val'))` and `graft.watch(...)`.
+/// - **Automatic Route Lifecycle:** Inherited and auto-disposed across the navigation stack just like standard [Graft].
+///
+/// ### Example:
 /// ```dart
+/// // 1. Counter (int)
 /// class CounterGraft extends ValueGraft<int> {
 ///   CounterGraft() : super(0);
 ///
@@ -22,14 +33,22 @@ class GraftValue<T> extends GraftState {
 ///   void decrement() => value--;
 /// }
 ///
+/// // 2. Theme Mode (enum)
 /// class ThemeGraft extends ValueGraft<ThemeMode> {
 ///   ThemeGraft() : super(ThemeMode.system);
 ///
 ///   void setMode(ThemeMode mode) => value = mode;
 /// }
+///
+/// // 3. Search Query (String)
+/// class SearchGraft extends ValueGraft<String> {
+///   SearchGraft() : super('');
+///
+///   void onQueryChanged(String query) => value = query;
+/// }
 /// ```
 abstract class ValueGraft<T> extends Graft<GraftValue<T>> {
-  /// Creates a [ValueGraft] with the given [initialValue].
+  /// Creates a [ValueGraft] initialized with [initialValue].
   ValueGraft(T initialValue) : super(GraftValue<T>(initialValue));
 
   /// The current primitive value.

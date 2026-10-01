@@ -15,9 +15,42 @@ class _GraftNotifier<T> extends ValueNotifier<T> {
 /// Base class for reactive state management with fine-grained slot isolation.
 ///
 /// A [Graft] manages domain state of type [S], which must extend [GraftState].
-/// Supports mutable cascade updates via [GraftState] (`state..name = ''..update()`).
+/// It connects business logic to Flutter UI with automatic 0-rebuild slot diffing.
+///
+/// ### Why use Graft?
+/// - **Zero Boilerplate:** No `copyWith()`, no `Equatable`, no `build_runner`.
+/// - **Fluent Mutation:** Update state via `state..field = value..update();`.
+/// - **0-Rebuild Slot Diffing:** In `graft.column(...)`, only slots with changed data rebuild.
+/// - **Automatic Route Disposal:** Disposed when the screen that created it pops.
+///
+/// ### Example:
+/// ```dart
+/// class UserState extends GraftState {
+///   String name = '';
+///   int age = 0;
+/// }
+///
+/// class UserGraft extends Graft<UserState> {
+///   UserGraft() : super(UserState());
+///
+///   void updateProfile(String name, int age) {
+///     state
+///       ..name = name
+///       ..age = age
+///       ..update(); // Batched diffing: fires 1 frame update!
+///   }
+/// }
+/// ```
 abstract class Graft<S extends GraftState> {
-  /// Global observer for monitoring all [Graft] instances.
+  /// Global observer for monitoring lifecycle transitions and errors across all [Graft] instances.
+  ///
+  /// Set this in `main()` to log transitions or report errors to analytics:
+  /// ```dart
+  /// void main() {
+  ///   Graft.observer = GraftDevObserver(); // Colorized terminal logs
+  ///   runApp(const MyApp());
+  /// }
+  /// ```
   static GraftObserver? observer;
 
   late S _state;
@@ -25,6 +58,8 @@ abstract class Graft<S extends GraftState> {
   bool _isDisposed = false;
 
   /// Creates a new [Graft] with the given [initialState].
+  ///
+  /// Automatically binds [initialState] to this controller and notifies [observer].
   Graft(S initialState) {
     _state = initialState;
     _notifier = _GraftNotifier<S>(initialState);
@@ -32,26 +67,47 @@ abstract class Graft<S extends GraftState> {
     observer?.onCreate(this);
   }
 
-  /// The current state of this [Graft].
+  /// The current state snapshot of this [Graft].
+  ///
+  /// Read properties directly or chain mutations using cascade:
+  /// ```dart
+  /// state..name = 'Alice'..update();
+  /// ```
   S get state => _state;
 
-  /// Directly sets the next state and notifies listeners.
+  /// Directly assigns a new state instance and notifies listeners.
+  ///
+  /// ```dart
+  /// state = nextState;
+  /// ```
   set state(S newState) => emit(newState);
 
-  /// A listenable representation of this [Graft]'s state.
+  /// A [ValueListenable] representation of this [Graft]'s state.
+  ///
+  /// Useful for interop with Flutter's standard `ValueListenableBuilder`:
+  /// ```dart
+  /// ValueListenableBuilder(
+  ///   valueListenable: graft.listenable,
+  ///   builder: (context, state, _) => Text(state.name),
+  /// )
+  /// ```
   ValueListenable<S> get listenable => _notifier;
 
   /// Whether this [Graft] has been disposed.
+  ///
+  /// Once disposed, all listeners are released and emissions are ignored.
   bool get isDisposed => _isDisposed;
 
-  /// Adds a listener to be notified whenever [state] changes.
+  /// Adds a [listener] callback to be notified whenever [state] updates.
+  ///
+  /// Remember to remove the listener using [removeListener] when no longer needed.
   void addListener(VoidCallback listener) {
     if (!_isDisposed) {
       _notifier.addListener(listener);
     }
   }
 
-  /// Removes a previously registered listener.
+  /// Removes a previously registered [listener].
   void removeListener(VoidCallback listener) {
     if (!_isDisposed) {
       _notifier.removeListener(listener);
@@ -61,6 +117,7 @@ abstract class Graft<S extends GraftState> {
   /// Notifies all listeners and triggers fine-grained slot diffing for [state].
   ///
   /// Typically called automatically by `state..update()` when using [GraftState].
+  /// Can also be called directly to force a slot-diff pass.
   void notify() {
     if (_isDisposed) {
       if (kDebugMode) {
@@ -82,9 +139,8 @@ abstract class Graft<S extends GraftState> {
 
   /// Updates the state to [newState] and notifies all listeners.
   ///
-  /// If [newState] is identical to current [state], [notify] is called.
-  /// If [newState] is equal to current [state] (via `operator ==`),
-  /// or if this [Graft] is disposed, this operation is a no-op.
+  /// - If [newState] is equal to current [state] (via `operator ==`), this is a no-op.
+  /// - If this [Graft] is disposed, this operation is ignored.
   @protected
   void emit(S newState) {
     if (_isDisposed) {
@@ -113,13 +169,25 @@ abstract class Graft<S extends GraftState> {
     _notifier.value = newState;
   }
 
-  /// Reports an error to the global [observer].
+  /// Reports an unhandled error to the global [observer].
+  ///
+  /// Useful in `try/catch` blocks:
+  /// ```dart
+  /// try {
+  ///   await api.fetch();
+  /// } catch (e, st) {
+  ///   addError(e, st);
+  /// }
+  /// ```
   @protected
   void addError(Object error, [StackTrace? stackTrace]) {
     observer?.onError(this, error, stackTrace ?? StackTrace.current);
   }
 
   /// Disposes this [Graft], releasing all listeners and internal resources.
+  ///
+  /// In typical usage, you do not need to call this manually—Graft automatically
+  /// disposes route-scoped instances when their owner route is popped.
   @mustCallSuper
   void dispose() {
     if (_isDisposed) return;

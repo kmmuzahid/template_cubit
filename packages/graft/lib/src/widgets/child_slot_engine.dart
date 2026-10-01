@@ -2,7 +2,27 @@ import 'package:flutter/widgets.dart';
 import '../core/graft.dart';
 import '../core/graft_state.dart';
 
-/// Optional interface for custom widgets to define fine-grained slot content equivalence.
+/// Interface for custom widgets to declare fine-grained content equivalence for slot diffing.
+///
+/// ### Why implement GraftEquivalent?
+/// In Flutter, `Widget.operator ==` is marked `@nonVirtual` by default linter rules.
+/// Implementing [GraftEquivalent] allows your custom widgets to define custom equivalence rules
+/// without triggering linter warnings, allowing [GraftMultiChildDiffEngine] to skip rebuilding
+/// whenever [isEquivalentTo] returns `true`.
+///
+/// ### Example:
+/// ```dart
+/// class UserAvatar extends StatelessWidget implements GraftEquivalent {
+///   final String url;
+///   const UserAvatar(this.url);
+///
+///   @override
+///   bool isEquivalentTo(Widget other) => other is UserAvatar && other.url == url;
+///
+///   @override
+///   Widget build(BuildContext context) => Image.network(url);
+/// }
+/// ```
 abstract interface class GraftEquivalent {
   /// Returns whether this widget is equivalent to [other] for slot diffing.
   bool isEquivalentTo(Widget other);
@@ -10,13 +30,27 @@ abstract interface class GraftEquivalent {
 
 /// Engine that performs fine-grained diffing on multi-child layout slots.
 ///
-/// Only slots with changed content will rebuild. `const` widgets and widgets
-/// whose properties remain equivalent experience 0 rebuilds.
+/// ### Why use GraftMultiChildDiffEngine?
+/// In standard Flutter, modifying a single field inside a state model causes every widget inside
+/// a parent `Column` or `Row` to rebuild.
+/// [GraftMultiChildDiffEngine] wraps each child returned by [childrenBuilder] in an isolated
+/// notifier slot. When state changes:
+/// - `const` children: **0 rebuilds** (pointer identity match).
+/// - Content equivalent children: **0 rebuilds** (evaluated via [isWidgetEquivalent]).
+/// - Only slots with modified content trigger a rebuild in Flutter's render pipeline.
+///
+/// Powering methods like `graft.column(...)`, `graft.row(...)`, `graft.stack(...)`, and `graft.wrap(...)`.
 class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget {
+  /// The [Graft] controller providing state updates.
   final Graft<S> graft;
+
+  /// Builder returning the list of children widgets based on current [S].
   final List<Widget> Function(S state) childrenBuilder;
+
+  /// Layout wrapper (e.g. `Column(...)`, `Row(...)`) receiving the isolated slot widgets.
   final Widget Function(BuildContext context, List<Widget> children) layoutBuilder;
 
+  /// Creates a [GraftMultiChildDiffEngine] that manages isolated slot rebuilds.
   const GraftMultiChildDiffEngine({
     super.key,
     required this.graft,
@@ -24,7 +58,10 @@ class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget {
     required this.layoutBuilder,
   });
 
-  /// Compares two widgets for content equivalence.
+  /// Compares two widgets for content equivalence to prevent unnecessary slot rebuilds.
+  ///
+  /// Evaluates custom [GraftEquivalent] implementations first, followed by structural
+  /// property equality on common built-in Flutter widgets ([Text], [Icon], [SizedBox], [Padding]).
   static bool isWidgetEquivalent(Widget a, Widget b) {
     if (a.runtimeType != b.runtimeType) return false;
     if (a.key != b.key) return false;
@@ -176,10 +213,20 @@ class _ChildSlotScope extends StatelessWidget {
 }
 
 /// Single-child slot diff engine. Rebuilds only when the widget returned by [builder] changes.
+///
+/// ### Why use GraftSingleSlotScope?
+/// Isolates a single widget builder so that modifications to unrelated fields in [GraftState]
+/// do not cause this widget subtree to rebuild.
+///
+/// Powering `graft.slot(...)`, `graft.padding(...)`, `graft.center(...)`, and `graft.card(...)`.
 class GraftSingleSlotScope<S extends GraftState> extends StatefulWidget {
+  /// The [Graft] controller providing state updates.
   final Graft<S> graft;
+
+  /// Builder returning the child widget based on current [S].
   final Widget Function(S state) builder;
 
+  /// Creates a [GraftSingleSlotScope] that isolates single child slot rebuilds.
   const GraftSingleSlotScope({
     super.key,
     required this.graft,
