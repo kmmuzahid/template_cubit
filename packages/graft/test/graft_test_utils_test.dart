@@ -1,18 +1,21 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:graft/graft.dart';
 import 'package:graft/testing.dart';
 
-class CounterState extends Equatable {
+class CounterState extends GraftState {
   final int count;
-  const CounterState(this.count);
+  CounterState(this.count);
 
   @override
-  List<Object?> get props => [count];
+  bool operator ==(Object other) =>
+      identical(this, other) || other is CounterState && count == other.count;
+
+  @override
+  int get hashCode => count.hashCode;
 }
 
 class CounterGraft extends Graft<CounterState> {
-  CounterGraft() : super(const CounterState(0));
+  CounterGraft() : super(CounterState(0));
 
   void increment() => emit(CounterState(state.count + 1));
   void add(int amount) => emit(CounterState(state.count + amount));
@@ -30,7 +33,7 @@ void main() {
       build: () => CounterGraft(),
       act: (graft) => graft.increment(),
       expect: () => [
-        const CounterState(1),
+        CounterState(1),
       ],
     );
 
@@ -42,8 +45,8 @@ void main() {
         graft.add(5);
       },
       expect: () => [
-        const CounterState(1),
-        const CounterState(6),
+        CounterState(1),
+        CounterState(6),
       ],
     );
 
@@ -53,7 +56,7 @@ void main() {
       act: (graft) => graft.delayedIncrement(),
       wait: const Duration(milliseconds: 100),
       expect: () => [
-        const CounterState(1),
+        CounterState(1),
       ],
     );
   });

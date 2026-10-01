@@ -13,6 +13,8 @@ export 'src/context/graft_context.dart';
 export 'src/core/graft.dart';
 export 'src/core/graft_change.dart';
 export 'src/core/graft_observer.dart';
+export 'src/core/graft_state.dart';
+export 'src/core/value_graft.dart';
 export 'src/di/graft_registry.dart';
 export 'src/route/graft_route_tracker.dart';
 export 'src/widgets/child_slot_engine.dart';

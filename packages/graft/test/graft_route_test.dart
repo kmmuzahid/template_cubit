@@ -1,18 +1,21 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:graft/graft.dart';
 
-class TestState extends Equatable {
+class TestState extends GraftState {
   final int count;
-  const TestState({this.count = 0});
+  TestState({this.count = 0});
 
   @override
-  List<Object?> get props => [count];
+  bool operator ==(Object other) =>
+      identical(this, other) || other is TestState && count == other.count;
+
+  @override
+  int get hashCode => count.hashCode;
 }
 
 class TestGraft extends Graft<TestState> {
-  TestGraft() : super(const TestState());
+  TestGraft() : super(TestState());
 }
 
 void main() {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import '../core/graft.dart';
+import '../core/graft_state.dart';
 
 /// Declarative testing utility for [Graft], modeled after `blocTest`.
 ///
@@ -8,14 +9,14 @@ import '../core/graft.dart';
 ///
 /// Example:
 /// ```dart
-/// graftTest<CounterGraft, int>(
-///   'emits [1] when increment is called',
-///   build: () => CounterGraft(),
-///   act: (graft) => graft.increment(),
-///   expect: () => [1],
+/// graftTest<UserGraft, UserState>(
+///   'emits updated user when called',
+///   build: () => UserGraft(),
+///   act: (graft) => graft.fetch(),
+///   verify: (graft) => expect(graft.state.name, 'Alice'),
 /// );
 /// ```
-void graftTest<G extends Graft<S>, S>(
+void graftTest<G extends Graft<S>, S extends GraftState>(
   String description, {
   required G Function() build,
   void Function(G graft)? setUp,

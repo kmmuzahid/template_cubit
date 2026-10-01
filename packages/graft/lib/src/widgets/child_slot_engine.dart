@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import '../core/graft.dart';
+import '../core/graft_state.dart';
 
 /// Optional interface for custom widgets to define fine-grained slot content equivalence.
 abstract interface class GraftEquivalent {
@@ -11,7 +12,7 @@ abstract interface class GraftEquivalent {
 ///
 /// Only slots with changed content will rebuild. `const` widgets and widgets
 /// whose properties remain equivalent experience 0 rebuilds.
-class GraftMultiChildDiffEngine<S> extends StatefulWidget {
+class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget {
   final Graft<S> graft;
   final List<Widget> Function(S state) childrenBuilder;
   final Widget Function(BuildContext context, List<Widget> children) layoutBuilder;
@@ -69,7 +70,7 @@ class GraftMultiChildDiffEngine<S> extends StatefulWidget {
       _GraftMultiChildDiffEngineState<S>();
 }
 
-class _GraftMultiChildDiffEngineState<S>
+class _GraftMultiChildDiffEngineState<S extends GraftState>
     extends State<GraftMultiChildDiffEngine<S>> {
   late List<ValueNotifier<Widget>> _slotNotifiers;
 
@@ -175,7 +176,7 @@ class _ChildSlotScope extends StatelessWidget {
 }
 
 /// Single-child slot diff engine. Rebuilds only when the widget returned by [builder] changes.
-class GraftSingleSlotScope<S> extends StatefulWidget {
+class GraftSingleSlotScope<S extends GraftState> extends StatefulWidget {
   final Graft<S> graft;
   final Widget Function(S state) builder;
 
@@ -189,7 +190,7 @@ class GraftSingleSlotScope<S> extends StatefulWidget {
   State<GraftSingleSlotScope<S>> createState() => _GraftSingleSlotScopeState<S>();
 }
 
-class _GraftSingleSlotScopeState<S> extends State<GraftSingleSlotScope<S>> {
+class _GraftSingleSlotScopeState<S extends GraftState> extends State<GraftSingleSlotScope<S>> {
   late final ValueNotifier<Widget> _slotNotifier;
 
   @override

@@ -1,63 +1,70 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:graft/graft.dart';
 
 // =============================================================================
-// 1. STATE DEFINITION (Clean, single immutable domain model)
+// 1. STATE DEFINITION (Clean, zero-boilerplate domain model with GraftState)
 // =============================================================================
 
-class UserState extends Equatable {
-  final String name;
-  final String email;
-  final bool isVerified;
-  final int notificationCount;
+class UserState extends GraftState {
+  String name;
+  String email;
+  bool isVerified;
+  int notificationCount;
 
-  const UserState({
+  UserState({
     this.name = 'Alice Johnson',
     this.email = 'alice@example.com',
     this.isVerified = true,
     this.notificationCount = 3,
   });
-
-  UserState copyWith({
-    String? name,
-    String? email,
-    bool? isVerified,
-    int? notificationCount,
-  }) {
-    return UserState(
-      name: name ?? this.name,
-      email: email ?? this.email,
-      isVerified: isVerified ?? this.isVerified,
-      notificationCount: notificationCount ?? this.notificationCount,
-    );
-  }
-
-  @override
-  List<Object?> get props => [name, email, isVerified, notificationCount];
 }
 
 // =============================================================================
-// 2. GRAFT (Business Logic & State Transitions)
+// 2. GRAFT (Business Logic & State Transitions with direct cascade updates)
 // =============================================================================
 
 class UserGraft extends Graft<UserState> {
-  UserGraft() : super(const UserState());
+  UserGraft() : super(UserState());
 
   void updateName(String newName) {
-    emit(state.copyWith(name: newName));
+    state
+      ..name = newName
+      ..update();
   }
 
   void updateEmail(String newEmail) {
-    emit(state.copyWith(email: newEmail));
+    state
+      ..email = newEmail
+      ..update();
   }
 
   void toggleVerified() {
-    emit(state.copyWith(isVerified: !state.isVerified));
+    state
+      ..isVerified = !state.isVerified
+      ..update();
   }
 
   void incrementNotifications() {
-    emit(state.copyWith(notificationCount: state.notificationCount + 1));
+    state
+      ..notificationCount += 1
+      ..update();
+  }
+
+  /// Batched Multi-Property Update:
+  /// Updates name, email, verification, and notification count simultaneously
+  /// in a single statement. Triggers exactly ONE diff pass with zero intermediate rebuild glitches.
+  void batchUpdateProfile({
+    required String name,
+    required String email,
+    required bool isVerified,
+    required int notifications,
+  }) {
+    state
+      ..name = name
+      ..email = email
+      ..isVerified = isVerified
+      ..notificationCount = notifications
+      ..update(); // 💥 All 4 fields updated in 1 single pass!
   }
 }
 
@@ -202,6 +209,19 @@ class HomeScreen extends StatelessWidget {
                   icon: const Icon(Icons.check_circle_outline),
                   label: const Text('Toggle Verified'),
                   onPressed: () => graft.toggleVerified(),
+                ),
+                FilledButton.icon(
+                  icon: const Icon(Icons.flash_on),
+                  label: const Text('⚡ Batch Update All Fields'),
+                  onPressed: () {
+                    final isOriginal = graft.state.name == 'Alice Johnson';
+                    graft.batchUpdateProfile(
+                      name: isOriginal ? 'Dr. John Doe' : 'Alice Johnson',
+                      email: isOriginal ? 'john.doe@company.org' : 'alice@example.com',
+                      isVerified: !graft.state.isVerified,
+                      notifications: graft.state.notificationCount + 5,
+                    );
+                  },
                 ),
               ],
             ),

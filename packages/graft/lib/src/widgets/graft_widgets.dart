@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../core/graft.dart';
+import '../core/graft_state.dart';
+import '../core/value_graft.dart';
 import 'child_slot_engine.dart';
 
 /// Extension on [Graft<S>] providing seamless, reactive Flutter widget builders.
-extension GraftWidgetsX<S> on Graft<S> {
+extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   // ===========================================================================
   // MULTI-CHILD LAYOUTS (AUTOMATIC SLOT DIFFING)
   // ===========================================================================
@@ -296,7 +298,7 @@ extension GraftWidgetsX<S> on Graft<S> {
   }
 }
 
-class _GraftSelector<S, R> extends StatefulWidget {
+class _GraftSelector<S extends GraftState, R> extends StatefulWidget {
   final Graft<S> graft;
   final R Function(S state) selector;
   final Widget Function(R value) builder;
@@ -312,7 +314,7 @@ class _GraftSelector<S, R> extends StatefulWidget {
   State<_GraftSelector<S, R>> createState() => _GraftSelectorState<S, R>();
 }
 
-class _GraftSelectorState<S, R> extends State<_GraftSelector<S, R>> {
+class _GraftSelectorState<S extends GraftState, R> extends State<_GraftSelector<S, R>> {
   late R _selectedValue;
 
   @override
@@ -350,5 +352,26 @@ class _GraftSelectorState<S, R> extends State<_GraftSelector<S, R>> {
   @override
   Widget build(BuildContext context) {
     return widget.builder(_selectedValue);
+  }
+}
+
+/// Extension on [ValueGraft<T>] providing clean, single-value reactive widget builders.
+extension ValueGraftWidgetsX<T> on ValueGraft<T> {
+  /// A reactive slot that rebuilds only when [value] changes.
+  Widget slot(Widget Function(T value) builder, {Key? key}) {
+    return GraftSingleSlotScope<GraftValue<T>>(
+      key: key,
+      graft: this,
+      builder: (s) => builder(s.value),
+    );
+  }
+
+  /// Rebuilds this widget tree whenever [value] changes.
+  Widget watch(Widget Function(T value) builder, {Key? key}) {
+    return ValueListenableBuilder<GraftValue<T>>(
+      key: key,
+      valueListenable: listenable,
+      builder: (_, s, __) => builder(s.value),
+    );
   }
 }

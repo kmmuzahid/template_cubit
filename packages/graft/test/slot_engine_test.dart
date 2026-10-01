@@ -1,15 +1,14 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:graft/graft.dart';
 
-class ProfileState extends Equatable {
-  final String name;
-  final String email;
-  final bool isVerified;
-  final bool isLoading;
+class ProfileState extends GraftState {
+  String name;
+  String email;
+  bool isVerified;
+  bool isLoading;
 
-  const ProfileState({
+  ProfileState({
     this.name = 'Alice',
     this.email = 'alice@example.com',
     this.isVerified = false,
@@ -29,13 +28,10 @@ class ProfileState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
     );
   }
-
-  @override
-  List<Object?> get props => [name, email, isVerified, isLoading];
 }
 
 class ProfileGraft extends Graft<ProfileState> {
-  ProfileGraft() : super(const ProfileState());
+  ProfileGraft() : super(ProfileState());
 
   void updateName(String newName) => emit(state.copyWith(name: newName));
   void updateEmail(String newEmail) => emit(state.copyWith(email: newEmail));

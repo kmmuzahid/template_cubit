@@ -69,64 +69,67 @@ graft.column((s) => [
 
 ## 🚀 Getting Started
 
-### 1. Define Your State
-Use standard immutable classes with `Equatable`:
+### 1. Define Your State (Zero-Boilerplate with `GraftState`)
+No `copyWith()`, no `Equatable`, and zero code generation:
 
 ```dart
-import 'package:equatable/equatable.dart';
+import 'package:graft/graft.dart';
 
-class UserState extends Equatable {
-  final String name;
-  final String email;
-  final bool isVerified;
-  final bool isLoading;
-
-  const UserState({
-    this.name = '',
-    this.email = '',
-    this.isVerified = false,
-    this.isLoading = false,
-  });
-
-  UserState copyWith({
-    String? name,
-    String? email,
-    bool? isVerified,
-    bool? isLoading,
-  }) {
-    return UserState(
-      name: name ?? this.name,
-      email: email ?? this.email,
-      isVerified: isVerified ?? this.isVerified,
-      isLoading: isLoading ?? this.isLoading,
-    );
-  }
-
-  @override
-  List<Object?> get props => [name, email, isVerified, isLoading];
+class UserState extends GraftState {
+  String name = '';
+  String email = '';
+  bool isVerified = false;
+  bool isLoading = false;
 }
 ```
 
 ### 2. Create Your Graft
-Extend `Graft<State>` and use `emit()` to update state safely:
+Extend `Graft<S extends GraftState>` and use fluent cascade mutation (`state..update()`):
 
 ```dart
 import 'package:graft/graft.dart';
 
 class UserGraft extends Graft<UserState> {
-  UserGraft() : super(const UserState());
+  UserGraft() : super(UserState());
 
   void updateName(String newName) {
-    emit(state.copyWith(name: newName));
+    state
+      ..name = newName
+      ..update(); // Triggers fine-grained slot diffing!
   }
 
-  void updateEmail(String newEmail) {
-    emit(state.copyWith(email: newEmail));
+  void updateProfile({required String name, required String email}) {
+    // Multi-property updates batch into a single 0-rebuild diff pass:
+    state
+      ..name = name
+      ..email = email
+      ..isLoading = false
+      ..update();
   }
 
   void toggleVerified() {
-    emit(state.copyWith(isVerified: !state.isVerified));
+    state
+      ..isVerified = !state.isVerified
+      ..update();
   }
+}
+```
+
+### Need a Single Primitive Value? (Zero State Class with `ValueGraft<T>`)
+For simple counters, themes, or flags, use `ValueGraft<T>` with **no state class needed**:
+
+```dart
+class CounterGraft extends ValueGraft<int> {
+  CounterGraft() : super(0);
+
+  void increment() => value++;
+  void decrement() => value--;
+}
+
+class ThemeGraft extends ValueGraft<ThemeMode> {
+  ThemeGraft() : super(ThemeMode.system);
+
+  void toggle() => value = value == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
 }
 ```
 

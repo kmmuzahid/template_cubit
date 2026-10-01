@@ -1,12 +1,11 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:graft/graft.dart';
 
-class TestState extends Equatable {
+class TestState extends GraftState {
   final int count;
   final String text;
 
-  const TestState({this.count = 0, this.text = ''});
+  TestState({this.count = 0, this.text = ''});
 
   TestState copyWith({int? count, String? text}) {
     return TestState(
@@ -16,11 +15,19 @@ class TestState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [count, text];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TestState &&
+          runtimeType == other.runtimeType &&
+          count == other.count &&
+          text == other.text;
+
+  @override
+  int get hashCode => count.hashCode ^ text.hashCode;
 }
 
 class TestGraft extends Graft<TestState> {
-  TestGraft() : super(const TestState());
+  TestGraft() : super(TestState());
 
   void increment() => emit(state.copyWith(count: state.count + 1));
   void setText(String text) => emit(state.copyWith(text: text));
@@ -72,7 +79,7 @@ void main() {
 
     test('initial state is set synchronously and calls onCreate', () {
       final graft = TestGraft();
-      expect(graft.state, const TestState(count: 0, text: ''));
+      expect(graft.state, TestState(count: 0, text: ''));
       expect(observer.createCalls, 1);
       graft.dispose();
     });
@@ -87,8 +94,8 @@ void main() {
       expect(graft.state.count, 1);
       expect(listenerCalls, 1);
       expect(observer.changeCalls, 1);
-      expect(observer.lastChange?.currentState, const TestState(count: 0, text: ''));
-      expect(observer.lastChange?.nextState, const TestState(count: 1, text: ''));
+      expect(observer.lastChange?.currentState, TestState(count: 0, text: ''));
+      expect(observer.lastChange?.nextState, TestState(count: 1, text: ''));
 
       graft.dispose();
     });

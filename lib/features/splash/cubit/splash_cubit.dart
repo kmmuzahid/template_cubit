@@ -1,11 +1,11 @@
 import 'package:graft/graft.dart';
 
-class SplashCubit extends Graft<bool> {
+class SplashCubit extends ValueGraft<bool> {
   SplashCubit() : super(false);
 
   void init() async {
-    emit(true);
+    value = true;
     await Future.delayed(const Duration(seconds: 2));
-    emit(false);
+    value = false;
   }
 }
