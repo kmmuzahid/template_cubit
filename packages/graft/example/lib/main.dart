@@ -86,26 +86,37 @@ class TaskListState extends GraftState {
 
 class TaskListGraft extends Graft<TaskListState> {
   TaskListGraft()
-      : super(TaskListState(tasks: [
-          TaskItem(id: '1', title: 'Install Graft package', isDone: true),
-          TaskItem(
-              id: '2', title: 'Learn graft.slot and graft.slots', isDone: true),
-          TaskItem(
+    : super(
+        TaskListState(
+          tasks: [
+            TaskItem(id: '1', title: 'Install Graft package', isDone: true),
+            TaskItem(
+              id: '2',
+              title: 'Learn graft.slot and graft.slots',
+              isDone: true,
+            ),
+            TaskItem(
               id: '3',
               title: 'Explore ListView with and without ValueGraft',
-              isDone: false),
-          TaskItem(
+              isDone: false,
+            ),
+            TaskItem(
               id: '4',
               title: 'Build high-performance Flutter app',
-              isDone: false),
-        ]));
+              isDone: false,
+            ),
+          ],
+        ),
+      );
 
   void toggleTask(String id) {
     state
       ..tasks = state.tasks
-          .map((t) => t.id == id
-              ? TaskItem(id: t.id, title: t.title, isDone: !t.isDone)
-              : t)
+          .map(
+            (t) => t.id == id
+                ? TaskItem(id: t.id, title: t.title, isDone: !t.isDone)
+                : t,
+          )
           .toList()
       ..update();
   }
@@ -115,9 +126,10 @@ class TaskListGraft extends Graft<TaskListState> {
       ..tasks = [
         ...state.tasks,
         TaskItem(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            title: title,
-            isDone: false),
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          title: title,
+          isDone: false,
+        ),
       ]
       ..update();
   }
@@ -133,18 +145,15 @@ class ProductItem {
   final ValueGraft<int> quantity;
 
   ProductItem({required this.title, bool liked = false, int count = 1})
-      : isLiked = ValueGraft<bool>(liked),
-        quantity = ValueGraft<int>(count);
+    : isLiked = ValueGraft<bool>(liked),
+      quantity = ValueGraft<int>(count);
 }
 
 class ProductCatalogState extends GraftState {
   List<ProductItem> products;
   bool isLoading;
 
-  ProductCatalogState({
-    this.products = const [],
-    this.isLoading = true,
-  });
+  ProductCatalogState({this.products = const [], this.isLoading = true});
 }
 
 class ProductCatalogGraft extends Graft<ProductCatalogState> {
@@ -166,7 +175,9 @@ class ProductCatalogGraft extends Graft<ProductCatalogState> {
       ..products = List.generate(
         25,
         (i) => ProductItem(
-            title: 'Item #${i + 1} (Flutter Widget)', liked: i % 2 == 0),
+          title: 'Item #${i + 1} (Flutter Widget)',
+          liked: i % 2 == 0,
+        ),
       )
       ..isLoading = false
       ..update();
@@ -297,46 +308,45 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 8),
 
             graft.slots(
-                (children) => Column(children: children),
-                (s) => [
-                      // Const widget: Flutter skips re-rendering entirely (0 rebuilds)
-                      const Card(
-                        color: Colors.deepPurple,
-                        child: Padding(
-                          padding: EdgeInsets.all(12),
-                          child: Text(
-                            '⚡ Const Header Banner (0 rebuilds)',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
+              (children) => Column(children: children),
+              (s) => [
+                // Const widget: Flutter skips re-rendering entirely (0 rebuilds)
+                const Card(
+                  color: Colors.deepPurple,
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text(
+                      '⚡ Const Header Banner (0 rebuilds)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
+                    ),
+                  ),
+                ),
 
-                      // Slot 1: Name
-                      ListTile(
-                        leading:
-                            const Icon(Icons.person, color: Colors.deepPurple),
-                        title: Text('Name: ${s.name}'),
-                        subtitle: const Text('Rebuilds ONLY when name changes'),
-                      ),
+                // Slot 1: Name
+                ListTile(
+                  leading: const Icon(Icons.person, color: Colors.deepPurple),
+                  title: Text('Name: ${s.name}'),
+                  subtitle: const Text('Rebuilds ONLY when name changes'),
+                ),
 
-                      // Slot 2: Email
-                      ListTile(
-                        leading:
-                            const Icon(Icons.email, color: Colors.deepPurple),
-                        title: Text('Email: ${s.email}'),
-                        subtitle:
-                            const Text('0 rebuilds if email is unchanged'),
-                      ),
+                // Slot 2: Email
+                ListTile(
+                  leading: const Icon(Icons.email, color: Colors.deepPurple),
+                  title: Text('Email: ${s.email}'),
+                  subtitle: const Text('0 rebuilds if email is unchanged'),
+                ),
 
-                      // Slot 3: Conditional Badge
-                      if (s.isVerified)
-                        const Chip(
-                          avatar: Icon(Icons.verified, color: Colors.green),
-                          label: Text('Verified User Account'),
-                        ),
-                    ]),
+                // Slot 3: Conditional Badge
+                if (s.isVerified)
+                  const Chip(
+                    avatar: Icon(Icons.verified, color: Colors.green),
+                    label: Text('Verified User Account'),
+                  ),
+              ],
+            ),
 
             const SizedBox(height: 16),
             Wrap(
@@ -392,18 +402,23 @@ class HomeScreen extends StatelessWidget {
             // =================================================================
             const _SectionHeader(
               title: '2. Standard Widgets Composed with graft.slot',
-              subtitle:
-                  'Place graft.slot inside any Flutter widget (ListTile, Card, etc.).',
+              subtitle: 'Place graft.slot inside any Flutter widget (ListTile, Card, etc.).',
             ),
             const SizedBox(height: 8),
 
             ListTile(
-              leading: graft.slot((s) => CircleAvatar(
-                    backgroundColor: s.isVerified ? Colors.green : Colors.grey,
-                    child: Text(s.name.isNotEmpty ? s.name[0] : '?'),
-                  )),
-              title: graft.slot((s) => Text(s.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold))),
+              leading: graft.slot(
+                (s) => CircleAvatar(
+                  backgroundColor: s.isVerified ? Colors.green : Colors.grey,
+                  child: Text(s.name.isNotEmpty ? s.name[0] : '?'),
+                ),
+              ),
+              title: graft.slot(
+                (s) => Text(
+                  s.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
               subtitle: graft.slot((s) => Text(s.email)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             ),
@@ -412,12 +427,14 @@ class HomeScreen extends StatelessWidget {
 
             Card(
               color: Colors.deepPurple.shade50,
-              child: graft.slot((s) => Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(
-                      'Card slot diffed: ${s.name} (${s.isVerified ? "Verified" : "Unverified"})',
-                    ),
-                  )),
+              child: graft.slot(
+                (s) => Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    'Card slot diffed: ${s.name} (${s.isVerified ? "Verified" : "Unverified"})',
+                  ),
+                ),
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -428,8 +445,7 @@ class HomeScreen extends StatelessWidget {
             // =================================================================
             const _SectionHeader(
               title: '3. Route-Stack Lifecycle & Inheritance',
-              subtitle:
-                  'Pushed screens borrow the active Graft. Disposed when owner pops.',
+              subtitle: 'Pushed screens borrow the active Graft. Disposed when owner pops.',
             ),
             const SizedBox(height: 12),
 
@@ -454,7 +470,8 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (_) => const IsolatedProfileScreen()),
+                    builder: (_) => const IsolatedProfileScreen(),
+                  ),
                 );
               },
             ),
@@ -467,8 +484,7 @@ class HomeScreen extends StatelessWidget {
             // =================================================================
             const _SectionHeader(
               title: '4. ListView.builder Examples',
-              subtitle:
-                  'Compare standard single-Graft lists vs. per-item ValueGraft.',
+              subtitle: 'Compare standard single-Graft lists vs. per-item ValueGraft.',
             ),
             const SizedBox(height: 12),
 
@@ -480,7 +496,8 @@ class HomeScreen extends StatelessWidget {
               ),
               icon: const Icon(Icons.format_list_bulleted),
               label: const Text(
-                  'Standard List (Single Graft / Without ValueGraft)'),
+                'Standard List (Single Graft / Without ValueGraft)',
+              ),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const StandardListScreen()),
@@ -497,7 +514,8 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (_) => const ValueGraftListScreen()),
+                    builder: (_) => const ValueGraftListScreen(),
+                  ),
                 );
               },
             ),
@@ -510,8 +528,7 @@ class HomeScreen extends StatelessWidget {
             // =================================================================
             const _SectionHeader(
               title: '5. Multi-Graft Composition (Cross-Graft Nesting)',
-              subtitle:
-                  'Consume multiple Grafts in one screen with ZERO MultiBlocProvider pyramids.',
+              subtitle: 'Consume multiple Grafts in one screen with ZERO MultiBlocProvider pyramids.',
             ),
             const SizedBox(height: 12),
 
@@ -526,7 +543,8 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (_) => const MultiGraftCompositionScreen()),
+                    builder: (_) => const MultiGraftCompositionScreen(),
+                  ),
                 );
               },
             ),
@@ -550,46 +568,45 @@ class EditProfileScreen extends StatelessWidget {
     final graft = context.use<UserGraft>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Borrower Screen 🔄'),
-      ),
+      appBar: AppBar(title: const Text('Borrower Screen 🔄')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: graft.slots(
-            (children) => Column(children: children),
-            (s) => [
-                  const Text(
-                    'This screen called context.use<UserGraft>() and borrowed the existing instance from HomeScreen.',
-                    style: TextStyle(fontSize: 15),
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Current Name: ${s.name}',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text('Current Email: ${s.email}'),
-                          const SizedBox(height: 4),
-                          Text(
-                              'Status: ${s.isVerified ? "Verified" : "Unverified"}'),
-                        ],
-                      ),
+          (children) => Column(children: children),
+          (s) => [
+            const Text(
+              'This screen called context.use<UserGraft>() and borrowed the existing instance from HomeScreen.',
+              style: TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current Name: ${s.name}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      graft.updateName('Edited by Second Screen!');
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Update Name & Pop Back to Home'),
-                  ),
-                ]),
+                    const SizedBox(height: 4),
+                    Text('Current Email: ${s.email}'),
+                    const SizedBox(height: 4),
+                    Text('Status: ${s.isVerified ? "Verified" : "Unverified"}'),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                graft.updateName('Edited by Second Screen!');
+                Navigator.of(context).pop();
+              },
+              child: const Text('Update Name & Pop Back to Home'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -608,26 +625,25 @@ class IsolatedProfileScreen extends StatelessWidget {
     final graft = context.create<UserGraft>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Isolated Screen 🛡️'),
-      ),
+      appBar: AppBar(title: const Text('Isolated Screen 🛡️')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: graft.slots(
-            (children) => Column(children: children),
-            (s) => [
-                  const Text(
-                    'This screen used context.create<UserGraft>() to create a completely independent instance.',
-                    style: TextStyle(fontSize: 15),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Independent Name: ${s.name}'),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () => graft.updateName('Isolated Change'),
-                    child: const Text('Change (Does NOT Affect Home)'),
-                  ),
-                ]),
+          (children) => Column(children: children),
+          (s) => [
+            const Text(
+              'This screen used context.create<UserGraft>() to create a completely independent instance.',
+              style: TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+            Text('Independent Name: ${s.name}'),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => graft.updateName('Isolated Change'),
+              child: const Text('Change (Does NOT Affect Home)'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -698,8 +714,9 @@ class StandardListScreen extends StatelessWidget {
                     title: Text(
                       task.title,
                       style: TextStyle(
-                        decoration:
-                            task.isDone ? TextDecoration.lineThrough : null,
+                        decoration: task.isDone
+                            ? TextDecoration.lineThrough
+                            : null,
                         color: task.isDone ? Colors.grey : null,
                       ),
                     ),
@@ -733,9 +750,7 @@ class ValueGraftListScreen extends StatelessWidget {
     final catalog = context.use<ProductCatalogGraft>()..init();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Micro-State List (ValueGraft)'),
-      ),
+      appBar: AppBar(title: const Text('Micro-State List (ValueGraft)')),
       body: Column(
         children: [
           // Pattern B Explanation Card
@@ -794,8 +809,10 @@ class ValueGraftListScreen extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.remove_circle_outline,
-                                size: 20),
+                            icon: const Icon(
+                              Icons.remove_circle_outline,
+                              size: 20,
+                            ),
                             onPressed: () {
                               if (product.quantity.value > 1) {
                                 product.quantity.value--;
@@ -803,8 +820,10 @@ class ValueGraftListScreen extends StatelessWidget {
                             },
                           ),
                           IconButton(
-                            icon:
-                                const Icon(Icons.add_circle_outline, size: 20),
+                            icon: const Icon(
+                              Icons.add_circle_outline,
+                              size: 20,
+                            ),
                             onPressed: () => product.quantity.value++,
                           ),
                           const SizedBox(width: 8),
@@ -851,9 +870,7 @@ class MultiGraftCompositionScreen extends StatelessWidget {
     final counterGraft = context.use<LiveCounterGraft>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Multi-Graft Showcase 🧬'),
-      ),
+      appBar: AppBar(title: const Text('Multi-Graft Showcase 🧬')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -861,8 +878,7 @@ class MultiGraftCompositionScreen extends StatelessWidget {
           children: [
             const _SectionHeader(
               title: 'Multi-Graft Composition & Nested Isolation',
-              subtitle:
-                  'Consume multiple Grafts with zero pyramids and complete rebuild isolation.',
+              subtitle: 'Consume multiple Grafts with zero pyramids and complete rebuild isolation.',
             ),
             const SizedBox(height: 16),
 
@@ -895,7 +911,8 @@ class MultiGraftCompositionScreen extends StatelessWidget {
                 Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -903,13 +920,18 @@ class MultiGraftCompositionScreen extends StatelessWidget {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.account_circle,
-                                color: Colors.deepPurple, size: 28),
+                            Icon(
+                              Icons.account_circle,
+                              color: Colors.deepPurple,
+                              size: 28,
+                            ),
                             SizedBox(width: 8),
                             Text(
                               'Parent Graft: UserGraft',
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                           ],
                         ),
@@ -917,7 +939,9 @@ class MultiGraftCompositionScreen extends StatelessWidget {
                         Text(
                           'Name: ${userState.name}',
                           style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -983,7 +1007,8 @@ class MultiGraftCompositionScreen extends StatelessWidget {
                         children: [
                           IconButton.filled(
                             style: IconButton.styleFrom(
-                                backgroundColor: Colors.amber.shade800),
+                              backgroundColor: Colors.amber.shade800,
+                            ),
                             icon: const Icon(Icons.remove),
                             tooltip: 'Decrement',
                             onPressed: counterGraft.decrement,
@@ -991,7 +1016,8 @@ class MultiGraftCompositionScreen extends StatelessWidget {
                           const SizedBox(width: 16),
                           IconButton.filled(
                             style: IconButton.styleFrom(
-                                backgroundColor: Colors.amber.shade800),
+                              backgroundColor: Colors.amber.shade800,
+                            ),
                             icon: const Icon(Icons.refresh),
                             tooltip: 'Reset',
                             onPressed: counterGraft.reset,
@@ -999,7 +1025,8 @@ class MultiGraftCompositionScreen extends StatelessWidget {
                           const SizedBox(width: 16),
                           IconButton.filled(
                             style: IconButton.styleFrom(
-                                backgroundColor: Colors.amber.shade800),
+                              backgroundColor: Colors.amber.shade800,
+                            ),
                             icon: const Icon(Icons.add),
                             tooltip: 'Increment',
                             onPressed: counterGraft.increment,
