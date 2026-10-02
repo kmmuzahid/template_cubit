@@ -125,6 +125,30 @@ class ProductItem {
         quantity = ValueGraft<int>(count);
 }
 
+class ProductCatalogState extends GraftState {
+  final List<ProductItem> products;
+  ProductCatalogState({required this.products});
+}
+
+class ProductCatalogGraft extends Graft<ProductCatalogState> {
+  ProductCatalogGraft()
+      : super(ProductCatalogState(
+          products: List.generate(
+            25,
+            (i) => ProductItem(title: 'Item #${i + 1} (Flutter Widget)', liked: i % 2 == 0),
+          ),
+        ));
+
+  @override
+  void dispose() {
+    for (final p in state.products) {
+      p.isLiked.dispose();
+      p.quantity.dispose();
+    }
+    super.dispose();
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Pattern C Models: Independent Counter Graft for Multi-Graft Composition
 // -----------------------------------------------------------------------------
@@ -167,6 +191,7 @@ void main() {
   // 2. Register Graft factories in DI:
   GraftRegistry.register(UserGraft.new);
   GraftRegistry.register(TaskListGraft.new);
+  GraftRegistry.register(ProductCatalogGraft.new);
   GraftRegistry.register(LiveCounterGraft.new);
 
   runApp(const GraftExampleApp());
@@ -580,32 +605,58 @@ class StandardListScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: graft.slot((s) => ListView.builder(
-        padding: const EdgeInsets.all(8),
-        itemCount: s.tasks.length,
-        itemBuilder: (context, index) {
-          final task = s.tasks[index];
-          return Card(
-            child: ListTile(
-              leading: Checkbox(
-                value: task.isDone,
-                onChanged: (_) => graft.toggleTask(task.id),
-              ),
-              title: Text(
-                task.title,
-                style: TextStyle(
-                  decoration: task.isDone ? TextDecoration.lineThrough : null,
-                  color: task.isDone ? Colors.grey : null,
-                ),
-              ),
-              trailing: Chip(
-                label: Text(task.isDone ? 'Done' : 'Pending'),
-                backgroundColor: task.isDone ? Colors.green.shade100 : Colors.amber.shade100,
+      body: Column(
+        children: [
+          // Pattern A Explanation Card
+          Card(
+            margin: const EdgeInsets.all(12),
+            color: Colors.teal.shade50,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.teal.shade200),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                '💡 Pattern A: Single State List (Standard BLoC/Provider style)\n'
+                '• The entire list shares one TaskListGraft.\n'
+                '• Toggling a task updates state and rebuilds the ListView slot.\n'
+                '• Compare with Pattern B (Screen 5) where only individual item cells rebuild!',
+                style: TextStyle(fontSize: 13, height: 1.4),
               ),
             ),
-          );
-        },
-      )),
+          ),
+          Expanded(
+            child: graft.slot((s) => ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              itemCount: s.tasks.length,
+              itemBuilder: (context, index) {
+                final task = s.tasks[index];
+                return Card(
+                  child: ListTile(
+                    leading: Checkbox(
+                      value: task.isDone,
+                      onChanged: (_) => graft.toggleTask(task.id),
+                    ),
+                    title: Text(
+                      task.title,
+                      style: TextStyle(
+                        decoration: task.isDone ? TextDecoration.lineThrough : null,
+                        color: task.isDone ? Colors.grey : null,
+                      ),
+                    ),
+                    trailing: Chip(
+                      label: Text(task.isDone ? 'Done' : 'Pending'),
+                      backgroundColor: task.isDone ? Colors.green.shade100 : Colors.amber.shade100,
+                    ),
+                  ),
+                );
+              },
+            )),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -614,74 +665,93 @@ class StandardListScreen extends StatelessWidget {
 // 8. SCREEN 5: MICRO-STATE LISTVIEW (With ValueGraft per item)
 // =============================================================================
 
-class ValueGraftListScreen extends StatefulWidget {
+class ValueGraftListScreen extends StatelessWidget {
   const ValueGraftListScreen({super.key});
 
   @override
-  State<ValueGraftListScreen> createState() => _ValueGraftListScreenState();
-}
-
-class _ValueGraftListScreenState extends State<ValueGraftListScreen> {
-  // Each product holds its own independent ValueGraft instances:
-  final List<ProductItem> products = List.generate(
-    25,
-    (i) => ProductItem(title: 'Item #${i + 1} (Flutter Widget)', liked: i % 2 == 0),
-  );
-
-  @override
   Widget build(BuildContext context) {
+    // 💥 100% Stateless: Borrow or create route-scoped catalog Graft:
+    final catalog = context.use<ProductCatalogGraft>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Micro-State List (ValueGraft)'),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(8),
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          final product = products[index];
-
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.deepPurple.shade100,
-                child: Text('${index + 1}'),
-              ),
-              title: Text(product.title),
-              subtitle: product.quantity.slot(
-                // 💥 Only this quantity label rebuilds when incremented/decremented!
-                (qty) => Text('In Cart: $qty units'),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle_outline, size: 20),
-                    onPressed: () {
-                      if (product.quantity.value > 1) {
-                        product.quantity.value--;
-                      }
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, size: 20),
-                    onPressed: () => product.quantity.value++,
-                  ),
-                  const SizedBox(width: 8),
-                  product.isLiked.slot(
-                    // 💥 Only this heart icon rebuilds when toggled!
-                    (isLiked) => IconButton(
-                      icon: Icon(
-                        isLiked ? Icons.favorite : Icons.favorite_border,
-                        color: isLiked ? Colors.red : null,
-                      ),
-                      onPressed: () => product.isLiked.value = !product.isLiked.value,
-                    ),
-                  ),
-                ],
+      body: Column(
+        children: [
+          // Pattern B Explanation Card
+          Card(
+            margin: const EdgeInsets.all(12),
+            color: Colors.deepPurple.shade50,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.deepPurple.shade200),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                '💡 Pattern B: Per-Item Micro-State with ValueGraft\n'
+                '• 100% StatelessWidget! No StatefulWidget or setState required.\n'
+                '• The ListView itself is NOT wrapped in a Graft — it never rebuilds!\n'
+                '• Each item holds independent ValueGraft instances (quantity & isLiked).\n'
+                '• Tapping "+" or "♥" rebuilds ONLY that specific cell slot — 0 parent & sibling rebuilds!',
+                style: TextStyle(fontSize: 13, height: 1.4),
               ),
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              itemCount: catalog.state.products.length,
+              itemBuilder: (context, index) {
+                final product = catalog.state.products[index];
+
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.deepPurple.shade100,
+                      child: Text('${index + 1}'),
+                    ),
+                    title: Text(product.title),
+                    subtitle: product.quantity.slot(
+                      // 💥 Only this quantity label rebuilds when incremented/decremented!
+                      (qty) => Text('In Cart: $qty units'),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, size: 20),
+                          onPressed: () {
+                            if (product.quantity.value > 1) {
+                              product.quantity.value--;
+                            }
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, size: 20),
+                          onPressed: () => product.quantity.value++,
+                        ),
+                        const SizedBox(width: 8),
+                        product.isLiked.slot(
+                          // 💥 Only this heart icon rebuilds when toggled!
+                          (isLiked) => IconButton(
+                            icon: Icon(
+                              isLiked ? Icons.favorite : Icons.favorite_border,
+                              color: isLiked ? Colors.red : null,
+                            ),
+                            onPressed: () => product.isLiked.value = !product.isLiked.value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -729,9 +799,9 @@ class MultiGraftCompositionScreen extends StatelessWidget {
                 padding: EdgeInsets.all(12),
                 child: Text(
                   '💡 How it works:\n'
-                  '• Tapping "Change Name" rebuilds ONLY the name text. The amber Counter container below stays at 0 rebuilds!\n'
-                  '• Tapping "+1" rebuilds ONLY the counter text. The parent User card stays at 0 rebuilds!\n'
-                  '• Both Grafts are independent controllers with 100% mutual isolation.',
+                  '• Tapping "Change Name" updates ONLY the parent User Card slot. The amber Counter container below stays at 0 rebuilds!\n'
+                  '• Tapping "+1" updates ONLY the counter text slot. The parent User Card stays at 0 rebuilds!\n'
+                  '• Both Grafts are independent controllers with 100% mutual rebuild isolation.',
                   style: TextStyle(fontSize: 13, height: 1.4),
                 ),
               ),

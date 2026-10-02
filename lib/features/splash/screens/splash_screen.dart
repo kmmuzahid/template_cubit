@@ -109,7 +109,7 @@ class SplashScreen extends StatelessWidget {
                     Row(mainAxisSize: MainAxisSize.min, children: children),
                 (counterState) => [
                   Text(
-                    'Counter: ${counterState.count} ${state.name}',
+                    'Counter: ${counterState.count}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
