@@ -403,5 +403,258 @@ void main() {
     graftA.dispose();
     graftB.dispose();
   });
+
+  testWidgets(
+      'Arbitrary custom StatelessWidget (like CkText) inside graft.slots has 0 rebuilds on unrelated updates',
+      (tester) async {
+    final graft = ProfileGraft();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.slots(
+            (children) => Column(children: children),
+            (s) => [
+              // Non-const 3rd-party-like widget without GraftEquivalent
+              // ignore: prefer_const_constructors
+              MockCkText('COREKIT EXAMPLE'),
+              Text('Name: ${s.name}'),
+              Text('Email: ${s.email}'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Initial mount build
+    expect(find.text('COREKIT EXAMPLE'), findsOneWidget);
+    expect(find.text('Name: Alice'), findsOneWidget);
+    expect(find.text('Email: alice@example.com'), findsOneWidget);
+
+    // Update email -> Email changes, CkText slot is NOT replaced
+    final initialCkText = (tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>))
+            as dynamic)
+        .slotNotifiers[0]
+        .value;
+
+    graft.updateEmail('bob@example.com');
+    await tester.pump();
+
+    final currentCkText = (tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>))
+            as dynamic)
+        .slotNotifiers[0]
+        .value;
+
+    expect(find.text('Email: bob@example.com'), findsOneWidget);
+    expect(identical(currentCkText, initialCkText), isTrue,
+        reason: 'MockCkText slot must NOT be replaced when email changes');
+
+    // Update name -> Name changes, CkText slot is NOT replaced
+    graft.updateName('Charlie');
+    await tester.pump();
+
+    final latestCkText = (tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>))
+            as dynamic)
+        .slotNotifiers[0]
+        .value;
+
+    expect(find.text('Name: Charlie'), findsOneWidget);
+    expect(identical(latestCkText, initialCkText), isTrue,
+        reason: 'MockCkText slot must NOT be replaced when name changes');
+
+    graft.dispose();
+  });
+
+  testWidgets(
+      'Widgets with explicit matching keys skip diffing and have 0 rebuilds',
+      (tester) async {
+    MockKeyedWidget.buildCount = 0;
+    final graft = ProfileGraft();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.slots(
+            (children) => Column(children: children),
+            (s) => [
+              const MockKeyedWidget(key: ValueKey('stable_key')),
+              Text('Name: ${s.name}'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(MockKeyedWidget.buildCount, equals(1));
+
+    // Update name -> Keyed widget has 0 rebuilds (count stays 1!)
+    graft.updateName('Charlie');
+    await tester.pump();
+
+    expect(MockKeyedWidget.buildCount, equals(1),
+        reason: 'Keyed widget must never rebuild when key is equal');
+
+    graft.dispose();
+  });
+
+  testWidgets(
+      'GestureDetector and ElevatedButton with inline closures do not trigger slot rebuilds',
+      (tester) async {
+    final graft = ProfileGraft();
+    int buttonClicks = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.slots(
+            (children) => Column(children: children),
+            (s) => [
+              GestureDetector(
+                onTap: () => buttonClicks++,
+                child: const Text('Tap Me'),
+              ),
+              ElevatedButton(
+                onPressed: () => buttonClicks += 10,
+                child: const Text('Submit Button'),
+              ),
+              Text('Name: ${s.name}'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final initialGestureSlot = (tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>))
+            as dynamic)
+        .slotNotifiers[0]
+        .value;
+    final initialButtonSlot = (tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>))
+            as dynamic)
+        .slotNotifiers[1]
+        .value;
+
+    expect(find.text('Tap Me'), findsOneWidget);
+    expect(find.text('Submit Button'), findsOneWidget);
+    expect(find.text('Name: Alice'), findsOneWidget);
+
+    // Update name -> unrelated state change
+    graft.updateName('Bob');
+    await tester.pump();
+
+    final currentGestureSlot = (tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>))
+            as dynamic)
+        .slotNotifiers[0]
+        .value;
+    final currentButtonSlot = (tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>))
+            as dynamic)
+        .slotNotifiers[1]
+        .value;
+
+    // Both slots must NOT be replaced!
+    expect(identical(currentGestureSlot, initialGestureSlot), isTrue,
+        reason: 'GestureDetector slot must not be replaced');
+    expect(identical(currentButtonSlot, initialButtonSlot), isTrue,
+        reason: 'ElevatedButton slot must not be replaced');
+
+    // Tap works
+    await tester.tap(find.text('Tap Me'));
+    expect(buttonClicks, 1);
+
+    await tester.tap(find.text('Submit Button'));
+    expect(buttonClicks, 11);
+
+    graft.dispose();
+  });
+
+  testWidgets(
+      'Composite design system widget with Row, Flexible, FittedBox does not replace slot',
+      (tester) async {
+    MockCompositeText.buildCount = 0;
+    final graft = ProfileGraft();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.slots(
+            (children) => Column(children: children),
+            (s) => [
+              const MockCompositeText('Fixed CoreKit Label'),
+              Text(s.name),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final initialCompositeSlot = (tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>))
+            as dynamic)
+        .slotNotifiers[0]
+        .value;
+
+    expect(MockCompositeText.buildCount, 1);
+
+    // Update unrelated state
+    graft.updateName('Charlie');
+    await tester.pump();
+
+    final currentCompositeSlot = (tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>))
+            as dynamic)
+        .slotNotifiers[0]
+        .value;
+
+    expect(identical(currentCompositeSlot, initialCompositeSlot), isTrue,
+        reason: 'Composite slot must not be replaced');
+    expect(MockCompositeText.buildCount, 1,
+        reason: 'MockCompositeText should have 0 rebuilds');
+    expect(find.text('Charlie'), findsOneWidget);
+
+    graft.dispose();
+  });
+}
+
+class MockCompositeText extends StatelessWidget {
+  static int buildCount = 0;
+  final String text;
+  const MockCompositeText(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    buildCount++;
+    return Padding(
+      padding: EdgeInsets.zero,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(text),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MockCkText extends StatelessWidget {
+  final String text;
+  const MockCkText(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text);
+  }
+}
+
+class MockKeyedWidget extends StatelessWidget {
+  static int buildCount = 0;
+  const MockKeyedWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    buildCount++;
+    return const Text('Keyed Content');
+  }
 }
 

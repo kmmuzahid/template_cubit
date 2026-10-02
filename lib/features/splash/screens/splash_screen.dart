@@ -53,7 +53,7 @@ class SplashScreen extends StatelessWidget {
             40.height,
             // App Name
             CkText(
-              text: 'COREKIT EXAMPLE',
+              text: state.name,
               fontSize: 28,
               fontWeight: FontWeight.w800,
               textColor: colors.tEXT_white,
@@ -79,11 +79,13 @@ class SplashScreen extends StatelessWidget {
             ),
             50.height,
             Container(
-              color: state.time % 2 == 0 ? Colors.amberAccent : Colors.white,
+              color: Colors.amberAccent,
               padding: .all(10),
-              child: Text(
-                state.time.toString(),
-                style: TextStyle(color: Colors.black),
+              child: graft.slot(
+                (s) => Text(
+                  state.time.toString(),
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
             ),
           ],
