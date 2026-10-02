@@ -610,6 +610,55 @@ void main() {
 
     graft.dispose();
   });
+
+  testWidgets(
+      'Nested Graft slots inside Container has 0 rebuilds when parent Graft updates',
+      (tester) async {
+    final graftA = ProfileGraft();
+    final graftB = ProfileGraft();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graftA.slots(
+            (children) => Column(children: children),
+            (sA) => [
+              Text('Name: ${sA.name}'),
+              Container(
+                color: Colors.amber,
+                padding: const EdgeInsets.all(8),
+                child: graftB.slots(
+                  (children) => Row(children: children),
+                  (sB) => [
+                    Text('Nested: ${sB.email}'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Name: Alice'), findsOneWidget);
+    expect(find.text('Nested: alice@example.com'), findsOneWidget);
+
+    final parentEngine = tester.state(find.byType(GraftMultiChildDiffEngine<ProfileState>).first) as dynamic;
+    final initialContainerSlot = parentEngine.slotNotifiers[1].value;
+
+    // Update graftA (parent)
+    graftA.updateName('Bob');
+    await tester.pump();
+
+    expect(find.text('Name: Bob'), findsOneWidget);
+
+    final currentContainerSlot = parentEngine.slotNotifiers[1].value;
+    expect(identical(currentContainerSlot, initialContainerSlot), isTrue,
+        reason: 'Container wrapping nested graft.slots must not be rebuilt or replaced when parent updates');
+
+    graftA.dispose();
+    graftB.dispose();
+  });
 }
 
 class MockCompositeText extends StatelessWidget {

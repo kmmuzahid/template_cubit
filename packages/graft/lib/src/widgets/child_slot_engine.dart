@@ -41,7 +41,8 @@ abstract interface class GraftEquivalent {
 /// - Only slots with modified content trigger a rebuild in Flutter's render pipeline.
 ///
 /// Powering methods like `graft.column(...)`, `graft.row(...)`, `graft.stack(...)`, and `graft.wrap(...)`.
-class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget {
+class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget
+    implements GraftEquivalent {
   /// The [Graft] controller providing state updates.
   final Graft<S> graft;
 
@@ -67,7 +68,9 @@ class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget {
   /// 2. **Stable Keys (`ValueKey`):** Widgets with matching non-null keys (e.g. `ValueKey(state.field)`)
   ///    skip diffing instantly with **0 rebuilds** when unchanged, and trigger an isolated rebuild
   ///    when the key value updates. Use this for 3rd-party or custom [StatefulWidget]s.
-  /// 3. **Custom Equivalence:** Evaluates [GraftEquivalent.isEquivalentTo] or `operator ==`.
+  /// 3. **Custom Equivalence & Native Graft Widgets:** Evaluates [GraftEquivalent.isEquivalentTo]
+  ///    or `operator ==`. Native Graft reactive widgets ([GraftMultiChildDiffEngine], [GraftSingleSlotScope],
+  ///    and `_GraftComputation`) implement [GraftEquivalent] to support nested cross-Graft isolation with 0 rebuilds.
   /// 4. **Supported Primitives:** Recursively property-diffed for [Text], [RichText], [Icon], [SizedBox],
   ///    [Padding], [Container], [ColoredBox], [Align]/[Center], [DecoratedBox], [Opacity], [ClipRRect],
   ///    [ShaderMask], [DefaultTextStyle], [Flex] ([Row]/[Column]), [Flexible] ([Expanded]), [FittedBox],
@@ -442,6 +445,12 @@ class GraftMultiChildDiffEngine<S extends GraftState> extends StatefulWidget {
   }
 
   @override
+  bool isEquivalentTo(Widget other) {
+    if (other is! GraftMultiChildDiffEngine) return false;
+    return graft == other.graft && key == other.key;
+  }
+
+  @override
   State<GraftMultiChildDiffEngine<S>> createState() =>
       _GraftMultiChildDiffEngineState<S>();
 }
@@ -574,7 +583,8 @@ class _ChildSlotScope extends StatelessWidget {
 /// ### Why use GraftSingleSlotScope?
 /// Isolates a single widget builder so that modifications to unrelated fields in [GraftState]
 /// do not cause this widget subtree to rebuild.
-class GraftSingleSlotScope<S extends GraftState> extends StatefulWidget {
+class GraftSingleSlotScope<S extends GraftState> extends StatefulWidget
+    implements GraftEquivalent {
   /// The [Graft] controller providing state updates.
   final Graft<S> graft;
 
@@ -587,6 +597,12 @@ class GraftSingleSlotScope<S extends GraftState> extends StatefulWidget {
     required this.graft,
     required this.builder,
   });
+
+  @override
+  bool isEquivalentTo(Widget other) {
+    if (other is! GraftSingleSlotScope) return false;
+    return graft == other.graft && key == other.key;
+  }
 
   @override
   State<GraftSingleSlotScope<S>> createState() => _GraftSingleSlotScopeState<S>();

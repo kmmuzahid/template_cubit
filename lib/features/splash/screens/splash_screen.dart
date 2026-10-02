@@ -2,6 +2,7 @@ import 'package:auto_route/annotations.dart';
 import 'package:core_kit/core_kit_internal.dart';
 import 'package:cubit_template/config/color/app_color.dart';
 import 'package:cubit_template/features/auth/widgets/app_screen_layout.dart';
+import 'package:cubit_template/features/splash/cubit/live_counter_graft.dart';
 import 'package:cubit_template/features/splash/cubit/splash_cubit.dart';
 import 'package:graft/graft.dart';
 import 'package:material_ui/material_ui.dart';
@@ -13,7 +14,9 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final graft = context.use<SplashCubit>()..init();
+
+    final graft = context.create<SplashCubit>()..init();
+    final counterGraft = context.use<LiveCounterGraft>();
 
     return AppScreenLayout(
       useSafeArea: false,
@@ -51,6 +54,7 @@ class SplashScreen extends StatelessWidget {
               ),
             ),
             40.height,
+            Container(color: Colors.red, child: Text(state.name)),
             // App Name
             CkText(
               text: state.name,
@@ -74,18 +78,49 @@ class SplashScreen extends StatelessWidget {
             60.height,
             Container(
               color: Colors.white,
-              padding: .all(10),
-              child: Text(state.name, style: TextStyle(color: Colors.black)),
-            ),
-            50.height,
-            Container(
-              color: Colors.amberAccent,
-              padding: .all(10),
-              child: graft.slot(
-                (s) => Text(
-                  state.time.toString(),
-                  style: TextStyle(color: Colors.black),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Name: ${state.name}',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
+            ),
+            16.height,
+            Container(
+              color: Colors.lightBlueAccent,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Timer: ${state.time}s',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            30.height,
+            // Nested independent Graft testing cross-graft isolation
+            Container(
+              color: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: counterGraft.slots(
+                (children) =>
+                    Row(mainAxisSize: MainAxisSize.min, children: children),
+                (counterState) => [
+                  Text(
+                    'Counter: ${counterState.count} ${state.name}',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: counterGraft.increment,
+                    child: const Text('+1'),
+                  ),
+                ],
               ),
             ),
           ],

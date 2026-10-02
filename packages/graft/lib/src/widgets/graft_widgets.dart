@@ -156,7 +156,8 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   }
 }
 
-class _GraftComputation<S extends GraftState, R> extends StatefulWidget {
+class _GraftComputation<S extends GraftState, R> extends StatefulWidget
+    implements GraftEquivalent {
   final Graft<S> graft;
   final R Function(S state) computation;
   final Widget Function(R value) builder;
@@ -167,6 +168,12 @@ class _GraftComputation<S extends GraftState, R> extends StatefulWidget {
     required this.computation,
     required this.builder,
   });
+
+  @override
+  bool isEquivalentTo(Widget other) {
+    if (other is! _GraftComputation) return false;
+    return graft == other.graft && key == other.key;
+  }
 
   @override
   State<_GraftComputation<S, R>> createState() => _GraftComputationState<S, R>();

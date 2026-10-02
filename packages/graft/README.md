@@ -427,6 +427,7 @@ class UserCard extends StatelessWidget implements GraftEquivalent {
 | **Auto-Unwrapped `StatelessWidget`s** | Context-based unwrapping to underlying primitives | Custom design-system components (`CkText`, `AppCard`) | **0 rebuilds** when inner content matches |
 | **Auto-Diffed Primitives** | Recursive property inspection (`Text`, `Icon`, `SizedBox`, `Padding`, `Container`, `ColoredBox`, `Align`, `Image`, `Flex`/`Row`/`Column`, `Flexible`/`Expanded`, `FittedBox`, etc.) | Standard Flutter UI & layout primitives | **0 rebuilds** when properties match |
 | **Interactive Widgets** | Functional equivalence check (`GestureDetector`, `InkWell`, `ElevatedButton`, `TextButton`, etc.) | Buttons and gesture detectors with inline closures (`() => ...`) | Preserves element, prevents unnecessary rebuilds & flickering |
+| **Cross-Graft Nesting** | Native `GraftEquivalent` check (`a.graft == b.graft && a.key == b.key`) | Embedding independent child Grafts (`graftB.slots`, `graftB.slot`, `graftB.compute`) inside parent slots | **0 rebuilds** on parent updates; child isolates completely |
 | **`graft.compute(...)`** | Pre-flight data-driven selector (`prevData == nextData`) | Heavy subtrees where building the widget tree should be skipped entirely | Builder is skipped completely if input value is unchanged |
 
 ---

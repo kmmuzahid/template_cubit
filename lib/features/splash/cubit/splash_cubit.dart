@@ -8,8 +8,12 @@ class SplashCubit extends Graft<ChildSplashCubit> {
   void init() async {
     await Future.delayed(const Duration(seconds: 1));
     state
-      ..name = "Km Muzahid"
+      ..name = "Km Muzahid" 
+      ..time = 1
       ..update();
+
+    
+
     await Future.delayed(const Duration(seconds: 1));
     Timer.periodic(const Duration(seconds: 1), (timer) {
       state
