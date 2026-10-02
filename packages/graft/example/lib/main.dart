@@ -126,18 +126,38 @@ class ProductItem {
 }
 
 class ProductCatalogState extends GraftState {
-  final List<ProductItem> products;
-  ProductCatalogState({required this.products});
+  List<ProductItem> products;
+  bool isLoading;
+
+  ProductCatalogState({
+    this.products = const [],
+    this.isLoading = true,
+  });
 }
 
 class ProductCatalogGraft extends Graft<ProductCatalogState> {
-  ProductCatalogGraft()
-      : super(ProductCatalogState(
-          products: List.generate(
-            25,
-            (i) => ProductItem(title: 'Item #${i + 1} (Flutter Widget)', liked: i % 2 == 0),
-          ),
-        ));
+  ProductCatalogGraft() : super(ProductCatalogState());
+
+  /// Asynchronous, non-blocking initialization:
+  /// Simulates fetching items from an API or database in the background.
+  Future<void> init() async {
+    // Idempotent guard: do nothing if already loaded or in progress
+    if (state.products.isNotEmpty || !state.isLoading) return;
+
+    // Simulate non-blocking async network / I/O latency:
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+
+    // Guard against disposal while async delay was pending:
+    if (isDisposed) return;
+
+    state
+      ..products = List.generate(
+        25,
+        (i) => ProductItem(title: 'Item #${i + 1} (Flutter Widget)', liked: i % 2 == 0),
+      )
+      ..isLoading = false
+      ..update();
+  }
 
   @override
   void dispose() {
@@ -670,8 +690,8 @@ class ValueGraftListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 💥 100% Stateless: Borrow or create route-scoped catalog Graft:
-    final catalog = context.use<ProductCatalogGraft>();
+    // 💥 100% Stateless: Borrow or create route-scoped catalog Graft & trigger async init:
+    final catalog = context.use<ProductCatalogGraft>()..init();
 
     return Scaffold(
       appBar: AppBar(
@@ -693,63 +713,77 @@ class ValueGraftListScreen extends StatelessWidget {
               child: Text(
                 '💡 Pattern B: Per-Item Micro-State with ValueGraft\n'
                 '• 100% StatelessWidget! No StatefulWidget or setState required.\n'
-                '• The ListView itself is NOT wrapped in a Graft — it never rebuilds!\n'
-                '• Each item holds independent ValueGraft instances (quantity & isLiked).\n'
-                '• Tapping "+" or "♥" rebuilds ONLY that specific cell slot — 0 parent & sibling rebuilds!',
+                '• Non-blocking async init() simulates remote fetching (spinner -> list).\n'
+                '• Once loaded, tapping "+" or "♥" rebuilds ONLY that specific cell slot — 0 parent & sibling rebuilds!',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              itemCount: catalog.state.products.length,
-              itemBuilder: (context, index) {
-                final product = catalog.state.products[index];
-
-                return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.deepPurple.shade100,
-                      child: Text('${index + 1}'),
-                    ),
-                    title: Text(product.title),
-                    subtitle: product.quantity.slot(
-                      // 💥 Only this quantity label rebuilds when incremented/decremented!
-                      (qty) => Text('In Cart: $qty units'),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle_outline, size: 20),
-                          onPressed: () {
-                            if (product.quantity.value > 1) {
-                              product.quantity.value--;
-                            }
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add_circle_outline, size: 20),
-                          onPressed: () => product.quantity.value++,
-                        ),
-                        const SizedBox(width: 8),
-                        product.isLiked.slot(
-                          // 💥 Only this heart icon rebuilds when toggled!
-                          (isLiked) => IconButton(
-                            icon: Icon(
-                              isLiked ? Icons.favorite : Icons.favorite_border,
-                              color: isLiked ? Colors.red : null,
-                            ),
-                            onPressed: () => product.isLiked.value = !product.isLiked.value,
-                          ),
-                        ),
-                      ],
-                    ),
+            child: catalog.slot((s) {
+              if (s.isLoading) {
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 12),
+                      Text('Loading products (non-blocking async)...'),
+                    ],
                   ),
                 );
-              },
-            ),
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemCount: s.products.length,
+                itemBuilder: (context, index) {
+                  final product = s.products[index];
+
+                  return Card(
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.deepPurple.shade100,
+                        child: Text('${index + 1}'),
+                      ),
+                      title: Text(product.title),
+                      subtitle: product.quantity.slot(
+                        // 💥 Only this quantity label rebuilds when incremented/decremented!
+                        (qty) => Text('In Cart: $qty units'),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline, size: 20),
+                            onPressed: () {
+                              if (product.quantity.value > 1) {
+                                product.quantity.value--;
+                              }
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline, size: 20),
+                            onPressed: () => product.quantity.value++,
+                          ),
+                          const SizedBox(width: 8),
+                          product.isLiked.slot(
+                            // 💥 Only this heart icon rebuilds when toggled!
+                            (isLiked) => IconButton(
+                              icon: Icon(
+                                isLiked ? Icons.favorite : Icons.favorite_border,
+                                color: isLiked ? Colors.red : null,
+                              ),
+                              onPressed: () => product.isLiked.value = !product.isLiked.value,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
           ),
         ],
       ),
