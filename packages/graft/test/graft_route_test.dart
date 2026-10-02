@@ -302,31 +302,4 @@ void main() {
     await tester.pumpAndSettle();
     expect(graftA!.isDisposed, isTrue);
   });
-
-  testWidgets(
-      'context.find returns active instance or throws StateError if none found',
-      (tester) async {
-    final observer = GraftRouteObserver();
-
-    await tester.pumpWidget(
-      MaterialApp(
-        navigatorObservers: [observer],
-        home: Builder(
-          builder: (context) {
-            // No instance in stack -> find throws StateError
-            expect(() => context.find<TestGraft>(), throwsStateError);
-
-            // Create instance
-            final created = context.use<TestGraft>();
-
-            // Now find succeeds and returns it!
-            final found = context.find<TestGraft>();
-            expect(identical(created, found), isTrue);
-
-            return const Scaffold(body: Text('Home'));
-          },
-        ),
-      ),
-    );
-  });
 }

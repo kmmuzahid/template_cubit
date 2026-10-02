@@ -89,34 +89,4 @@ extension GraftContextX on BuildContext {
 
     return newInstance;
   }
-
-  /// Looks up an existing [Graft] of type [T] in the current route stack without creating one.
-  ///
-  /// ### Why use `context.find<T>()`?
-  /// - Use when you want to read or trigger actions on an existing ancestor Graft without
-  ///   ever creating or owning an instance on the current screen.
-  /// - Throws a descriptive [StateError] if no active instance of [T] is found in the route stack.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// // Throws if no ancestor created AuthGraft:
-  /// final auth = context.find<AuthGraft>();
-  /// ```
-  T find<T extends Graft>() {
-    if (!GraftRegistry.canCreateNew<T>()) {
-      return GraftRegistry.getOrCreateSingleton<T>();
-    }
-
-    final route = ModalRoute.of(this);
-    final existing = GraftRouteTracker.findInStack<T>(route);
-
-    if (existing != null) {
-      return existing;
-    }
-
-    throw StateError(
-      'Could not find any active Graft of type $T in the route stack.\n'
-      'Make sure an ancestor screen called context.use<$T>() or context.create<$T>().',
-    );
-  }
 }

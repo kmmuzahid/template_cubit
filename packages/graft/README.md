@@ -136,6 +136,92 @@ Custom design-system widgets (like `CkText` from `core_kit` or custom Cards) aut
 
 ---
 
+## 🏛️ Architecture: How Graft Works Under the Hood
+
+Graft is engineered from the ground up to solve the fundamental architectural dilemma of Flutter:
+> *"How do we get the single cohesive domain model of BLoC without the boilerplate and whole-tree rebuilds, and the fine-grained rendering speed of Signals without fragmenting state into loose variables?"*
+
+Graft achieves this through three tightly integrated architectural layers:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        1. REACTIVE CORE LAYER                          │
+│                                                                        │
+│   Graft<S> Controller   ───────►   state..field = x..update()          │
+│   (Unified Domain Model)             (Direct Synchronous Emission)     │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        2. IN-MEMORY DIFF ENGINE                        │
+│                                                                        │
+│   graft.slots((c) => Column(children: c), (s) => [ ... ])              │
+│                                                                        │
+│   Loop through child slots in RAM (< 100 ns per slot):                 │
+│   ├── Identical pointers (const):           0 rebuilds                 │
+│   ├── Matching Keys (ValueKey):             0 rebuilds                 │
+│   ├── GraftEquivalent (Nested Grafts):      0 rebuilds                 │
+│   ├── Auto-Unwrap StatelessWidget (CkText): 0 rebuilds                 │
+│   └── Primitive property diff (Text, Icon): 0 rebuilds                 │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                  ┌─────────────────┴─────────────────┐
+                  ▼                                   ▼
+          Slot Content UNCHANGED              Slot Content CHANGED
+          (isWidgetEquivalent == true)        (isWidgetEquivalent == false)
+                  │                                   │
+                  ▼                                   ▼
+        ValueNotifier UNTOUCHED               _slotNotifier[i].value = newWidget
+        Flutter Element SKIPPED               Only Slot [i] Rebuilds (Targeted)
+        0 Rebuilds / 0 Repaints               1 Micro-Rebuild in Render Pipeline
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                    3. ROUTE LIFECYCLE & SCOPING                        │
+│                                                                        │
+│   context.use<MyGraft>() ──► ModalRoute.of(context) Registry           │
+│   ├── Owner Screen pops:    graft.dispose() called automatically       │
+│   └── Child Screen pops:    graft stays alive (borrower only)          │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### Subsystem 1: The Reactive Core (`Graft<S>` & `GraftState`)
+- **No StreamController Overhead**: Unlike BLoC which pipes state through asynchronous microtask queues via `StreamController` (causing micro-delays and scheduling overhead), Graft uses direct, synchronous notification.
+- **Fluent Cascade Updates**: Instead of writing verbose `copyWith(name: 'Bob', email: state.email, ...)` with dozens of constructor parameters, you mutate your state using standard Dart cascades and commit with `..update()`:
+  ```dart
+  state
+    ..name = 'Bob'
+    ..isVerified = true
+    ..update(); // Single atomic notification
+  ```
+- **Single Source of Truth**: All data belongs to a strongly-typed domain model class (`GraftState`). No loose variables, no desynchronized observables.
+
+### Subsystem 2: The In-Memory Slot Diffing Engine (`GraftMultiChildDiffEngine`)
+When `state..update()` is fired:
+1. `GraftMultiChildDiffEngine` executes `childrenBuilder(state)` to generate the proposed widget list in RAM.
+2. Each child at index `i` is paired with an isolated `_ChildSlotScope` backed by its own dedicated `ValueNotifier<Widget>`.
+3. The engine calls `isWidgetEquivalent(oldWidget, newWidget, context)`:
+   - **Pointer Match (`identical`)**: Checked in $< 1\text{ ns}$.
+   - **Key Match (`ValueKey`)**: For custom or 3rd-party `StatefulWidget`s, diffing skips instantly when keys match.
+   - **`GraftEquivalent`**: Native Graft widgets (`graft.slots`, `graft.slot`, `graft.compute`) check controller identity (`a.graft == b.graft`).
+   - **Recursive `StatelessWidget` Unwrapping**: Custom design-system components (e.g. `CkText`) automatically call `a.build(context)` to unwrap their internal tree without mounting elements.
+   - **Primitive Deep-Diffing**: Compares standard Flutter primitives (`Text`, `Icon`, `SizedBox`, `Padding`, `Container`, `Flex`, `Flexible`, `FittedBox`, etc.).
+4. **The Critical Difference**:
+   - If properties match, the engine **does nothing**. The slot's `ValueNotifier` is never touched.
+   - Flutter's `Element` tree at index `i` is **never marked dirty**.
+   - **Flutter's Layout and Paint phases are 100% skipped for all unchanged slots.**
+
+### Subsystem 3: Automatic Route-Aware Lifecycle (`GraftRegistry`)
+- **No Tree-Polluting Providers**: You never wrap screens in `BlocProvider` or `ChangeNotifierProvider`.
+- **Route Stack Ownership**:
+  - Screen A calls `context.use<UserGraft>()`. Because it does not exist in the route stack, Screen A creates and **owns** it.
+  - Screen A pushes Screen B. Screen B calls `context.use<UserGraft>()`. Graft looks backward down the Navigator route history, finds Screen A's instance, and reuses it.
+  - When Screen B pops: Screen B was just a borrower, so the controller **stays alive**.
+  - When Screen A pops: Screen A was the owner, so `GraftRouteObserver` automatically invokes `graft.dispose()` and cleans up all listeners.
+- **Zero Memory Leaks**: Unlike GetX where controllers linger globally forever unless manually removed, Graft controllers are strictly bound to the life of their owner route.
+
+---
+
 ## 🚀 Getting Started
 
 ### 1. Define Your State (Zero-Boilerplate with `GraftState`)
@@ -202,8 +288,18 @@ class ThemeGraft extends ValueGraft<ThemeMode> {
 }
 ```
 
-### 3. Register in DI
-Register your Graft once at app startup:
+### 3. Register in DI (Or Use Without Registering!)
+
+#### Option A: Zero-Setup Rapid Prototyping (No Registration Needed)
+During early development or rapid feature prototyping, you don't even need to register anything upfront. You can provide an inline factory directly in your widget:
+```dart
+final graft = context.use(() => UserGraft());
+// or
+final graft = context.create(() => UserGraft());
+```
+
+#### Option B: Centralized Registration at Startup (Recommended for Production)
+When your feature implementation is ready, register your Grafts once at app startup:
 
 ```dart
 // Route-scoped (default): Created on first use, auto-disposed when owner route pops:
@@ -216,7 +312,16 @@ GraftRegistry.registerSingleton(AuthGraft.new);
 GraftRegistry.registerSingleton(ThemeGraft.new, lazy: false);
 ```
 
-Then in any screen, simply call:
+#### Option C: Service Locator Interop (GetIt / Injectable)
+If your project already uses `GetIt` or another dependency injection container, you don't need to duplicate registrations. Just connect the fallback locator once:
+```dart
+void main() {
+  GraftRegistry.fallbackLocator = <T extends Object>() => getIt<T>();
+  runApp(const MyApp());
+}
+```
+
+Now any screen can resolve the Graft cleanly:
 ```dart
 final graft = context.use<UserGraft>();
 ```
@@ -290,17 +395,25 @@ class EditProfileScreen extends StatelessWidget {
 - **When Screen B pops**: `UserGraft` is **NOT** disposed (Screen B is just borrowing it).
 - **When Screen A pops**: `UserGraft.dispose()` is called **automatically** (Screen A was the owner).
 
-### Force New Instance
-If you explicitly want a separate, independent instance on a new screen:
+### Force New Instance (`context.create`)
+If you explicitly want a separate, isolated instance on a new screen (e.g. a wizard or a temporary form):
 ```dart
 final graft = context.create<UserGraft>();
 ```
 
-### Pure Lookup (Read-Only)
-To find an active instance in the route stack without creating one:
+#### 🛡️ Centralized Control: DI Always Takes Priority Over `context.create`
+What if a developer mistakenly used `context.create<UserGraft>()` in several UI widgets, but later architectural requirements dictate that `UserGraft` must be a **Global Singleton**?
+
+**You don't need to hunt down and rewrite every `context.create` in your UI!**
+
+Simply register it as a singleton in your startup DI configuration:
 ```dart
-final graft = context.find<UserGraft>();
+GraftRegistry.registerSingleton(UserGraft.new);
 ```
+
+**DI always takes priority first.** When a Graft is registered as a singleton, Graft intercepts all `context.create<UserGraft>()` calls across your entire codebase, disables new instance creation, and safely returns the DI-managed singleton!
+- **Mistake-Proof**: Prevents accidental runaway instances from leaking into the widget tree.
+- **Architectural Control**: Control lifecycle policies centrally from one line in DI without touching screen implementations.
 
 ---
 

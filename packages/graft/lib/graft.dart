@@ -35,7 +35,6 @@
 ///    Zero `MultiProvider` widget nesting. Declare factories once in [GraftRegistry]:
 ///    - `context.use<T>()`: Borrows an active instance from ancestor routes or instantiates a route-scoped owner.
 ///    - `context.create<T>()`: Force-creates an isolated, route-scoped instance.
-///    - `context.find<T>()`: Reads an existing ancestor instance without creating one.
 ///    - Grafts are automatically disposed when their owner route pops!
 ///
 /// 5. **Observability & Telemetry ([GraftObserver]):**
