@@ -17,16 +17,16 @@ Most Flutter state management solutions force you into an unpleasant compromise:
 
 **Graft solves all of this.**
 
-| Feature / Metric | Flutter Bloc | Riverpod | Signals | **Graft** |
-| :--- | :--- | :--- | :--- | :--- |
-| **Fine-Grained Rebuilds** | ❌ Manual `BlocSelector` per field | ⚠️ Requires `ref.watch(p.select(...))` | ✅ Rebuilds per signal | ✅ **Automatic**: `graft.slots((c) => Column(children: c), (s) => [ ... ])` diffs slots with **zero manual selectors** |
-| **Widget Tree Nesting** | ❌ Deep pyramid (`BlocProvider` → `BlocBuilder`) | ⚠️ `Consumer` / `ConsumerWidget` | ⚠️ `Watch(...)` wrappers | ✅ **Zero Nesting**: `final graft = context.use<MyGraft>()` at top of standard `StatelessWidget` |
-| **Code Generation** | ✅ None | ❌ Heavily pushed (`@riverpod`, `build_runner`) | ✅ None | ✅ **Strictly 0 Code-Gen** |
-| **State Structure** | ✅ Single immutable class | ✅ Single immutable class | ❌ Fragmented into loose signals | ✅ **Single cohesive, immutable domain State** |
-| **Route Stack Sharing** | ⚠️ Manual `BlocProvider.value` | ⚠️ AutoDispose or manual overrides | ⚠️ Manual disposal of effects | ✅ **Automatic**: Inherits from predecessor routes; auto-disposes when owner pops |
-| **Subclass Boilerplate** | ⚠️ High (Events, States, Handlers) | ⚠️ High (family providers, code-gen) | ⚠️ High (declaring 10+ signals) | ✅ **Zero**: `class InfoGraft extends Graft<InfoState>` |
-| **Observability** | ✅ `BlocObserver` | ⚠️ `ProviderObserver` | ❌ None built-in | ✅ **`GraftObserver` & colorized `GraftDevObserver`** |
-| **Unit Testing** | ✅ Declarative `blocTest` | ⚠️ `ProviderContainer` manual tests | ⚠️ Manual effects | ✅ **Declarative `graftTest` (Pure Dart, sub-millisecond)** |
+| Feature / Metric | Flutter BLoC / Cubit | Riverpod | Provider | GetX | MobX | Signals | **Graft** |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Fine-Grained Rebuilds** | ❌ Manual `BlocSelector` per field | ⚠️ Requires `ref.watch(p.select(...))` | ❌ Manual `Selector` per field | ⚠️ `Obx(() => ...)` wrappers everywhere | ⚠️ `Observer` wrappers everywhere | ✅ Micro-rebuild per signal | ✅ **Automatic**: `graft.slots((c) => Column(children: c), (s) => [ ... ])` diffs slots with **zero manual selectors** |
+| **Widget Tree Nesting** | ❌ Deep pyramid (`BlocProvider` → `BlocBuilder`) | ⚠️ `ConsumerWidget` or `Consumer` | ❌ Deep pyramid (`ChangeNotifierProvider` → `Consumer`) | ✅ Minimal | ⚠️ `Observer` wrappers | ⚠️ `Watch(...)` wrappers | ✅ **Zero Nesting**: `final graft = context.use<MyGraft>()` at top of standard `StatelessWidget` |
+| **Code Generation** | ✅ None | ❌ Heavily pushed (`@riverpod`, `build_runner`) | ✅ None | ✅ None | ❌ Mandatory (`@observable`, `@action`) | ✅ None | ✅ **Strictly 0 Code-Gen** |
+| **State Structure** | ✅ Single cohesive domain class | ✅ Single cohesive domain class | ✅ Single cohesive domain class | ❌ Fragmented reactive vars (`.obs`) | ❌ Fragmented observables | ❌ Fragmented loose signals (`signal()`) | ✅ **Single cohesive, immutable domain State** |
+| **Route Stack Sharing** | ⚠️ Manual `BlocProvider.value` | ⚠️ `autoDispose` or manual overrides | ⚠️ Manual scoping | ❌ Global map (frequent memory leaks) | ⚠️ Manual `dispose()` | ⚠️ Manual disposal of effects | ✅ **Automatic**: Inherits from predecessor routes; auto-disposes when owner pops |
+| **Subclass Boilerplate** | ⚠️ High (Events, States, Handlers) | ⚠️ High (family providers, code-gen) | ⚠️ Moderate (`ChangeNotifier`) | ⚠️ Moderate | ⚠️ High (`.g.dart` store files) | ⚠️ High (declaring 10+ signals) | ✅ **Zero**: `class InfoGraft extends Graft<InfoState>` |
+| **Observability** | ✅ `BlocObserver` | ⚠️ `ProviderObserver` | ❌ None built-in | ⚠️ Basic prints | ⚠️ MobX spy | ❌ None built-in | ✅ **`GraftObserver` & colorized `GraftDevObserver`** |
+| **Unit Testing** | ✅ Declarative `blocTest` | ⚠️ `ProviderContainer` manual tests | ⚠️ Manual mocks | ⚠️ Difficult to isolate | ⚠️ Manual harness | ⚠️ Manual effects | ✅ **Declarative `graftTest` (Pure Dart, sub-millisecond)** |
 
 ---
 
@@ -429,6 +429,103 @@ class UserCard extends StatelessWidget implements GraftEquivalent {
 | **Interactive Widgets** | Functional equivalence check (`GestureDetector`, `InkWell`, `ElevatedButton`, `TextButton`, etc.) | Buttons and gesture detectors with inline closures (`() => ...`) | Preserves element, prevents unnecessary rebuilds & flickering |
 | **Cross-Graft Nesting** | Native `GraftEquivalent` check (`a.graft == b.graft && a.key == b.key`) | Embedding independent child Grafts (`graftB.slots`, `graftB.slot`, `graftB.compute`) inside parent slots | **0 rebuilds** on parent updates; child isolates completely |
 | **`graft.compute(...)`** | Pre-flight data-driven selector (`prevData == nextData`) | Heavy subtrees where building the widget tree should be skipped entirely | Builder is skipped completely if input value is unchanged |
+
+---
+
+## 🧬 Composing Multiple Grafts (Multi-Graft Architecture & Cross-Graft Nesting)
+
+Real-world Flutter applications are never built around a single monolithic controller. A real screen often needs user profile data, a live shopping cart, notification counts, and a feature-specific form.
+
+Graft makes multi-controller composition effortless in two distinct ways:
+
+### 1. Consuming Multiple Grafts on the Same Screen (Zero Nested Providers)
+In Flutter BLoC, consuming 3 controllers forces you into `MultiBlocProvider` with 20+ lines of indentation and deep widget nesting:
+```dart
+// ❌ Flutter BLoC: Deep provider pyramid
+MultiBlocProvider(
+  providers: [
+    BlocProvider(create: (_) => UserBloc()),
+    BlocProvider(create: (_) => CartBloc()),
+    BlocProvider(create: (_) => NotificationBloc()),
+  ],
+  child: BlocBuilder<UserBloc, UserState>(
+    builder: (context, user) => BlocBuilder<CartBloc, CartState>(
+      builder: (context, cart) => ...,
+    ),
+  ),
+)
+```
+
+In **Graft**, you consume as many independent controllers as you need directly at the top of any standard `StatelessWidget`:
+```dart
+// ✅ Graft: Zero wrapper widgets! Pure Dart ergonomics!
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Access as many independent Grafts as you need - zero provider nesting!
+    final userGraft = context.use<UserGraft>();
+    final cartGraft = context.use<CartGraft>();
+    final notifGraft = context.use<NotificationGraft>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: userGraft.slot((u) => Text('Welcome, ${u.name}')),
+        actions: [
+          notifGraft.slot((n) => Badge(
+            label: Text('${n.count}'),
+            child: const Icon(Icons.notifications),
+          )),
+          cartGraft.slot((c) => Badge(
+            label: Text('${c.itemCount}'),
+            child: const Icon(Icons.shopping_cart),
+          )),
+        ],
+      ),
+      body: ...,
+    );
+  }
+}
+```
+Each `.slot()` and `.slots()` listens **only** to its own controller. When `cartGraft` updates, the user title and notification badges have **0 rebuilds**!
+
+---
+
+### 2. Cross-Graft Nesting (Embedding a Graft inside Another Graft's Slots)
+What if you need to embed an independent child Graft directly inside a slot of a parent Graft (for example, a live ticker or counter inside a profile card)?
+
+```dart
+userGraft.slots(
+  (children) => Column(children: children),
+  (userState) => [
+    // Slot 0: User info (Parent Graft)
+    Text('User: ${userState.name}'),
+    Text('Email: ${userState.email}'),
+
+    // Slot 1: Nested Child Graft inside a styled Container!
+    Container(
+      color: Colors.amberAccent,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: counterGraft.slots(
+        (children) => Row(children: children),
+        (counterState) => [
+          Text('Live Counter: ${counterState.count}'),
+          ElevatedButton(
+            onPressed: counterGraft.increment,
+            child: const Text('+1'),
+          ),
+        ],
+      ),
+    ),
+  ],
+)
+```
+
+#### Why Cross-Graft Nesting Works Perfectly in Graft:
+1. **Parent-to-Child Isolation**: When `userGraft.updateName('New Name')` is called, the parent slot diff engine compares the slots. Native Graft widgets implement **`GraftEquivalent`**. The engine checks `a.graft == b.graft` and confirms that `counterGraft` has not changed. **The outer `Container` and `counterGraft.slots` have 0 rebuilds!**
+2. **Child-to-Parent Isolation**: When the user taps `+1`, `counterGraft.increment()` emits. Only the inner `Text('Live Counter: X')` rebuilds **1 time**. The parent `UserGraft`, its `Column`, and all user labels have **0 rebuilds**!
+3. **No Duplicate Elements or Leaks**: Because each controller maintains its own isolated `ValueNotifier` list, cross-graft nesting has zero overhead and complete memory safety.
 
 ---
 

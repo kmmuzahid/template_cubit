@@ -125,6 +125,37 @@ class ProductItem {
         quantity = ValueGraft<int>(count);
 }
 
+// -----------------------------------------------------------------------------
+// Pattern C Models: Independent Counter Graft for Multi-Graft Composition
+// -----------------------------------------------------------------------------
+
+class LiveCounterState extends GraftState {
+  int count;
+  LiveCounterState({this.count = 0});
+}
+
+class LiveCounterGraft extends Graft<LiveCounterState> {
+  LiveCounterGraft() : super(LiveCounterState());
+
+  void increment() {
+    state
+      ..count += 1
+      ..update();
+  }
+
+  void decrement() {
+    state
+      ..count -= 1
+      ..update();
+  }
+
+  void reset() {
+    state
+      ..count = 0
+      ..update();
+  }
+}
+
 // =============================================================================
 // 3. MAIN ENTRY POINT & APP SETUP
 // =============================================================================
@@ -136,6 +167,7 @@ void main() {
   // 2. Register Graft factories in DI:
   GraftRegistry.register(UserGraft.new);
   GraftRegistry.register(TaskListGraft.new);
+  GraftRegistry.register(LiveCounterGraft.new);
 
   runApp(const GraftExampleApp());
 }
@@ -396,6 +428,33 @@ class HomeScreen extends StatelessWidget {
                 );
               },
             ),
+
+            const SizedBox(height: 24),
+            const Divider(),
+
+            // =================================================================
+            // 5. Multi-Graft Composition & Cross-Graft Nesting
+            // =================================================================
+            const _SectionHeader(
+              title: '5. Multi-Graft Composition (Cross-Graft Nesting)',
+              subtitle: 'Consume multiple Grafts in one screen with ZERO MultiBlocProvider pyramids.',
+            ),
+            const SizedBox(height: 12),
+
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber.shade800,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              icon: const Icon(Icons.hub),
+              label: const Text('Multi-Graft Showcase (Cross-Graft Nesting)'),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MultiGraftCompositionScreen()),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -623,6 +682,181 @@ class _ValueGraftListScreenState extends State<ValueGraftListScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 9. SCREEN 6: MULTI-GRAFT COMPOSITION & CROSS-GRAFT NESTING
+// =============================================================================
+
+class MultiGraftCompositionScreen extends StatelessWidget {
+  const MultiGraftCompositionScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // 💥 ZERO TREE NESTING:
+    // Consume multiple independent Grafts directly at the top of any StatelessWidget!
+    // No MultiBlocProvider, no MultiProvider, no ConsumerWidget!
+    final userGraft = context.use<UserGraft>();
+    final counterGraft = context.use<LiveCounterGraft>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Multi-Graft Showcase 🧬'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _SectionHeader(
+              title: 'Multi-Graft Composition & Nested Isolation',
+              subtitle: 'Consume multiple Grafts with zero pyramids and complete rebuild isolation.',
+            ),
+            const SizedBox(height: 16),
+
+            // Card explaining the behavior:
+            Card(
+              color: Colors.blue.shade50,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.blue.shade200),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  '💡 How it works:\n'
+                  '• Tapping "Change Name" rebuilds ONLY the name text. The amber Counter container below stays at 0 rebuilds!\n'
+                  '• Tapping "+1" rebuilds ONLY the counter text. The parent User card stays at 0 rebuilds!\n'
+                  '• Both Grafts are independent controllers with 100% mutual isolation.',
+                  style: TextStyle(fontSize: 13, height: 1.4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Parent Graft: userGraft.slots
+            userGraft.slots(
+              (children) => Column(children: children),
+              (userState) => [
+                // Slot 0: User Profile Card (Parent Graft)
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.account_circle, color: Colors.deepPurple, size: 28),
+                            SizedBox(width: 8),
+                            Text(
+                              'Parent Graft: UserGraft',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 20),
+                        Text(
+                          'Name: ${userState.name}',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Email: ${userState.email}',
+                          style: TextStyle(color: Colors.grey.shade700),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.edit),
+                          label: const Text('Change Name'),
+                          onPressed: () => userGraft.updateName(
+                            userGraft.state.name == 'Alice Johnson'
+                                ? 'Dr. John Doe'
+                                : 'Alice Johnson',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Slot 1: NESTED INDEPENDENT GRAFT (counterGraft.slots)
+                // Embedded inside a styled Container within UserGraft's slots!
+                // Thanks to GraftEquivalent, UserGraft updates do NOT rebuild this Container!
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.amber.shade700, width: 2),
+                  ),
+                  child: counterGraft.slots(
+                    (children) => Column(children: children),
+                    (counterState) => [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.bolt, color: Colors.amber.shade900),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Nested Child Graft: LiveCounterGraft',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.brown.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Count: ${counterState.count}',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.brown.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton.filled(
+                            style: IconButton.styleFrom(backgroundColor: Colors.amber.shade800),
+                            icon: const Icon(Icons.remove),
+                            tooltip: 'Decrement',
+                            onPressed: counterGraft.decrement,
+                          ),
+                          const SizedBox(width: 16),
+                          IconButton.filled(
+                            style: IconButton.styleFrom(backgroundColor: Colors.amber.shade800),
+                            icon: const Icon(Icons.refresh),
+                            tooltip: 'Reset',
+                            onPressed: counterGraft.reset,
+                          ),
+                          const SizedBox(width: 16),
+                          IconButton.filled(
+                            style: IconButton.styleFrom(backgroundColor: Colors.amber.shade800),
+                            icon: const Icon(Icons.add),
+                            tooltip: 'Increment',
+                            onPressed: counterGraft.increment,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
