@@ -550,7 +550,90 @@ class _GraftMultiChildDiffEngineState<S extends GraftState>
       );
     });
 
-    return widget.layoutBuilder(wrappedChildren);
+    final layoutWidget = widget.layoutBuilder(wrappedChildren);
+
+    assert(() {
+      if (wrappedChildren.isNotEmpty) {
+        _verifySlotsContract(layoutWidget, wrappedChildren);
+      }
+      return true;
+    }());
+
+    return layoutWidget;
+  }
+
+  static void _verifySlotsContract(
+    Widget rootWidget,
+    List<Widget> expectedChildren,
+  ) {
+    Widget? current = rootWidget;
+    List<Widget>? actualChildren;
+
+    while (current != null && actualChildren == null) {
+      if (current is MultiChildRenderObjectWidget) {
+        actualChildren = current.children;
+        break;
+      } else if (current is ListView &&
+          current.childrenDelegate is SliverChildListDelegate) {
+        actualChildren =
+            (current.childrenDelegate as SliverChildListDelegate).children;
+        break;
+      } else if (current is GridView &&
+          current.childrenDelegate is SliverChildListDelegate) {
+        actualChildren =
+            (current.childrenDelegate as SliverChildListDelegate).children;
+        break;
+      }
+
+      // Try unwrapping single child widgets (Container, Padding, Card, Scrollbar, etc.)
+      Widget? next;
+      if (current is SingleChildRenderObjectWidget) {
+        next = current.child;
+      } else if (current is Container) {
+        next = current.child;
+      } else if (current is Padding) {
+        next = current.child;
+      } else if (current is Card) {
+        next = current.child;
+      } else {
+        try {
+          final dynamic dynamicWidget = current;
+          final child = dynamicWidget.child;
+          if (child is Widget) {
+            next = child;
+          }
+        } catch (_) {}
+      }
+
+      if (next == null || identical(next, current)) {
+        break;
+      }
+      current = next;
+    }
+
+    if (actualChildren != null && expectedChildren.isNotEmpty) {
+      final containsSlots =
+          actualChildren.any((c) => expectedChildren.contains(c));
+      if (!containsSlots) {
+        throw FlutterError(
+          '\n════════════════════════════════════════════════════════════════════════════════\n'
+          '⚠️ GRAFT ERROR: UNUSED children IN graft.slots()\n'
+          '════════════════════════════════════════════════════════════════════════════════\n'
+          'In graft.slots((children) => ...), the provided "children" list was NOT passed\n'
+          'to your layout widget (${current?.runtimeType ?? rootWidget.runtimeType})!\n\n'
+          'Why this is an error:\n'
+          'Graft requires the provided "children" list because each child is wrapped in an\n'
+          'isolated slot notifier for 0-rebuild diffing.\n\n'
+          'Fix:\n'
+          'Pass the provided "children" list directly into your layout widget:\n'
+          '  graft.slots(\n'
+          '    (children) => ${current?.runtimeType ?? 'Column'}(children: children), // ✅ Pass children here!\n'
+          '    (s) => [ ... ],\n'
+          '  )\n'
+          '════════════════════════════════════════════════════════════════════════════════\n',
+        );
+      }
+    }
   }
 }
 
@@ -890,20 +973,125 @@ class _GraftBuilderDiffEngineState<S extends GraftState, T>
 
   @override
   Widget build(BuildContext context) {
-    return widget.layout(
-      _count,
-      (context, index) {
-        if (index < 0 || index >= _count) return null;
-        return GraftItemSlot<S, T>(
-          key: widget.itemKey != null
-              ? widget.itemKey!(widget.item(widget.graft.state, index), index)
-              : ValueKey(index),
-          graft: widget.graft,
-          selector: (s) => widget.item(s, index),
-          builder: (ctx, item) => widget.itemBuilder(ctx, item, index),
+    Widget? engineItemBuilder(BuildContext context, int index) {
+      if (index < 0 || index >= _count) return null;
+      return GraftItemSlot<S, T>(
+        key: widget.itemKey != null
+            ? widget.itemKey!(widget.item(widget.graft.state, index), index)
+            : ValueKey(index),
+        graft: widget.graft,
+        selector: (s) => widget.item(s, index),
+        builder: (ctx, item) => widget.itemBuilder(ctx, item, index),
+      );
+    }
+
+    final layoutWidget = widget.layout(_count, engineItemBuilder);
+
+    assert(() {
+      _verifyBuilderContract(layoutWidget, _count, engineItemBuilder);
+      return true;
+    }());
+
+    return layoutWidget;
+  }
+
+  static void _verifyBuilderContract(
+    Widget rootWidget,
+    int expectedCount,
+    NullableIndexedWidgetBuilder expectedBuilder,
+  ) {
+    Widget? current = rootWidget;
+    SliverChildDelegate? delegate;
+
+    while (current != null && delegate == null) {
+      if (current is ListView) {
+        delegate = current.childrenDelegate;
+        break;
+      } else if (current is GridView) {
+        delegate = current.childrenDelegate;
+        break;
+      } else if (current is PageView) {
+        delegate = current.childrenDelegate;
+        break;
+      } else if (current is SliverMultiBoxAdaptorWidget) {
+        delegate = current.delegate;
+        break;
+      }
+
+      // Try unwrapping single child widgets (Scrollbar, RefreshIndicator, Padding, Container, etc.)
+      Widget? next;
+      if (current is SingleChildRenderObjectWidget) {
+        next = current.child;
+      } else if (current is RefreshIndicator) {
+        next = current.child;
+      } else if (current is Scrollbar) {
+        next = current.child;
+      } else if (current is Container) {
+        next = current.child;
+      } else if (current is Padding) {
+        next = current.child;
+      } else {
+        try {
+          final dynamic dynamicWidget = current;
+          final child = dynamicWidget.child;
+          if (child is Widget) {
+            next = child;
+          }
+        } catch (_) {}
+      }
+
+      if (next == null || identical(next, current)) {
+        break;
+      }
+      current = next;
+    }
+
+    if (delegate is SliverChildBuilderDelegate) {
+      if (!identical(delegate.builder, expectedBuilder)) {
+        throw FlutterError(
+          '\n════════════════════════════════════════════════════════════════════════════════\n'
+          '⚠️ GRAFT ERROR: UNUSED itemBuilder IN graft.builder()\n'
+          '════════════════════════════════════════════════════════════════════════════════\n'
+          'In graft.builder((itemCount, itemBuilder) => ...), the provided "itemBuilder"\n'
+          'was NOT passed to your collection widget (${current?.runtimeType ?? rootWidget.runtimeType})!\n\n'
+          'Why this is an error:\n'
+          'Graft requires the provided "itemBuilder" to wrap each visible item in an isolated\n'
+          'GraftItemSlot for 100% lazy virtualization and 1-rebuild performance.\n\n'
+          'Fix:\n'
+          'Pass the provided "itemBuilder" directly into your collection widget:\n'
+          '  graft.builder(\n'
+          '    (itemCount, itemBuilder) => ${current?.runtimeType ?? 'ListView'}.builder(\n'
+          '      itemCount: itemCount,\n'
+          '      itemBuilder: itemBuilder, // ✅ Pass the provided itemBuilder here!\n'
+          '    ),\n'
+          '    items: (s) => ...,\n'
+          '    itemBuilder: (context, item, index) => ...,\n'
+          '  )\n'
+          '════════════════════════════════════════════════════════════════════════════════\n',
         );
-      },
-    );
+      }
+
+      if (delegate.childCount != null && delegate.childCount != expectedCount) {
+        throw FlutterError(
+          '\n════════════════════════════════════════════════════════════════════════════════\n'
+          '⚠️ GRAFT ERROR: MISMATCHED itemCount IN graft.builder()\n'
+          '════════════════════════════════════════════════════════════════════════════════\n'
+          'The collection widget (${current?.runtimeType ?? rootWidget.runtimeType}) was created with itemCount: ${delegate.childCount},\n'
+          'but the engine provided itemCount: $expectedCount.\n\n'
+          'Fix:\n'
+          'Pass the provided "itemCount" directly:\n'
+          '  graft.builder(\n'
+          '    (itemCount, itemBuilder) => ${current?.runtimeType ?? 'ListView'}.builder(\n'
+          '      itemCount: itemCount, // ✅ Use provided itemCount\n'
+          '      itemBuilder: itemBuilder,\n'
+          '    ),\n'
+          '    items: (s) => ...,\n'
+          '    itemBuilder: (context, item, index) => ...,\n'
+          '  )\n'
+          '════════════════════════════════════════════════════════════════════════════════\n',
+        );
+      }
+    }
   }
 }
 

@@ -785,6 +785,88 @@ void main() {
 
     graft.dispose();
   });
+
+  testWidgets('graft.builder throws FlutterError when itemBuilder is not passed', (tester) async {
+    final graft = ProfileGraft();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.builder<String>(
+            (itemCount, itemBuilder) => ListView.builder(
+              itemCount: itemCount,
+              // ❌ Mistake: forgot to pass itemBuilder!
+              itemBuilder: (context, index) => Text('Wrong $index'),
+            ),
+            items: (s) => [s.name],
+            itemBuilder: (context, val, index) => Text(val),
+          ),
+        ),
+      ),
+    );
+
+    final error = tester.takeException();
+    expect(error, isA<FlutterError>());
+    expect(
+      (error as FlutterError).message,
+      contains('UNUSED itemBuilder IN graft.builder()'),
+    );
+
+    graft.dispose();
+  });
+
+  testWidgets('graft.builder throws FlutterError when itemCount is mismatched', (tester) async {
+    final graft = ProfileGraft();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.builder<String>(
+            (itemCount, itemBuilder) => ListView.builder(
+              itemCount: 999, // ❌ Mistake: hardcoded count instead of using itemCount
+              itemBuilder: itemBuilder,
+            ),
+            items: (s) => [s.name],
+            itemBuilder: (context, val, index) => Text(val),
+          ),
+        ),
+      ),
+    );
+
+    final error = tester.takeException();
+    expect(error, isA<FlutterError>());
+    expect(
+      (error as FlutterError).message,
+      contains('MISMATCHED itemCount IN graft.builder()'),
+    );
+
+    graft.dispose();
+  });
+
+  testWidgets('graft.slots throws FlutterError when children is not passed', (tester) async {
+    final graft = ProfileGraft();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.slots(
+            // ❌ Mistake: forgot to pass children!
+            (children) => const Column(children: [Text('Hardcoded')]),
+            (s) => [Text(s.name)],
+          ),
+        ),
+      ),
+    );
+
+    final error = tester.takeException();
+    expect(error, isA<FlutterError>());
+    expect(
+      (error as FlutterError).message,
+      contains('UNUSED children IN graft.slots()'),
+    );
+
+    graft.dispose();
+  });
 }
 
 class MockCompositeText extends StatelessWidget {
