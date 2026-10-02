@@ -154,6 +154,66 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
       builder: builder,
     );
   }
+
+  // ===========================================================================
+  // 4. LAZY BUILDER & VIRTUALIZED COLLECTIONS
+  // ===========================================================================
+
+  /// Creates a 100% lazy, virtualized [ListView.builder] with per-item slot diffing.
+  ///
+  /// - **100% Viewport Virtualization**: Offscreen items are not kept in memory.
+  /// - **Per-Item Diffing**: Toggling an item rebuilds **ONLY that specific item** in DevTools.
+  /// - **Unchanged items**: **0 rebuilds**!
+  /// - Works directly with your standard domain model without needing `ValueGraft`.
+  Widget builder<T>({
+    required int Function(S state) itemCount,
+    required T Function(S state, int index) item,
+    required Widget Function(BuildContext context, T item, int index) itemBuilder,
+    Key? key,
+    Widget Function(BuildContext context, int index)? separatorBuilder,
+    EdgeInsetsGeometry? padding,
+    ScrollPhysics? physics,
+    bool shrinkWrap = false,
+    ScrollController? controller,
+  }) {
+    GraftScopeGuard.verifyNotActive(this, 'graft.builder');
+    return GraftLazyListEngine<S, T>(
+      key: key,
+      graft: this,
+      itemCount: itemCount,
+      item: item,
+      itemBuilder: itemBuilder,
+      separatorBuilder: separatorBuilder,
+      padding: padding,
+      physics: physics,
+      shrinkWrap: shrinkWrap,
+      controller: controller,
+    );
+  }
+
+  /// Universal lazy item slot adapter.
+  ///
+  /// Plug directly into the `itemBuilder` of **ANY** Flutter builder:
+  /// - [GridView.builder]
+  /// - [ListView.builder]
+  /// - [PageView.builder]
+  /// - [SliverList.builder] / [SliverGrid.builder]
+  /// - [CarouselView]
+  ///
+  /// Rebuilds **ONLY** when [selector] returns a new or modified item.
+  Widget item<T>(
+    T Function(S state) selector,
+    Widget Function(BuildContext context, T item) builder, {
+    Key? key,
+  }) {
+    GraftScopeGuard.verifyNotActive(this, 'graft.item');
+    return GraftItemSlot<S, T>(
+      key: key,
+      graft: this,
+      selector: selector,
+      builder: builder,
+    );
+  }
 }
 
 class _GraftComputation<S extends GraftState, R> extends StatefulWidget

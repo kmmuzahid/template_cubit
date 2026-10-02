@@ -659,6 +659,87 @@ void main() {
     graftA.dispose();
     graftB.dispose();
   });
+
+  testWidgets('graft.builder virtualizes list and isolates item rebuilds', (tester) async {
+    final graft = ProfileGraft();
+    int buildCountAlice = 0;
+    int buildCountBob = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.builder<String>(
+            itemCount: (s) => 2,
+            item: (s, index) => index == 0 ? s.name : s.email,
+            itemBuilder: (context, val, index) {
+              if (index == 0) buildCountAlice++;
+              if (index == 1) buildCountBob++;
+              return Text('Item $index: $val');
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Item 0: Alice'), findsOneWidget);
+    expect(find.text('Item 1: alice@example.com'), findsOneWidget);
+    expect(buildCountAlice, 1);
+    expect(buildCountBob, 1);
+
+    // Update only name -> index 0 changes, index 1 must NOT rebuild
+    graft.updateName('Charlie');
+    await tester.pump();
+
+    expect(find.text('Item 0: Charlie'), findsOneWidget);
+    expect(find.text('Item 1: alice@example.com'), findsOneWidget);
+    expect(buildCountAlice, 2);
+    expect(buildCountBob, 1, reason: 'Item 1 was not modified and must have 0 rebuilds');
+
+    graft.dispose();
+  });
+
+  testWidgets('graft.item works seamlessly inside GridView.builder', (tester) async {
+    final graft = ProfileGraft();
+    int buildCount0 = 0;
+    int buildCount1 = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+            itemCount: 2,
+            itemBuilder: (context, index) {
+              return graft.item<String>(
+                (s) => index == 0 ? s.name : s.email,
+                (ctx, val) {
+                  if (index == 0) buildCount0++;
+                  if (index == 1) buildCount1++;
+                  return Text('Grid $index: $val');
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Grid 0: Alice'), findsOneWidget);
+    expect(find.text('Grid 1: alice@example.com'), findsOneWidget);
+    expect(buildCount0, 1);
+    expect(buildCount1, 1);
+
+    // Update name -> Grid 0 rebuilds, Grid 1 stays at 0 rebuilds
+    graft.updateName('Dana');
+    await tester.pump();
+
+    expect(find.text('Grid 0: Dana'), findsOneWidget);
+    expect(find.text('Grid 1: alice@example.com'), findsOneWidget);
+    expect(buildCount0, 2);
+    expect(buildCount1, 1, reason: 'Grid 1 was not modified and must have 0 rebuilds');
+
+    graft.dispose();
+  });
 }
 
 class MockCompositeText extends StatelessWidget {

@@ -672,45 +672,43 @@ class StandardListScreen extends StatelessWidget {
             child: const Padding(
               padding: EdgeInsets.all(12),
               child: Text(
-                '💡 Pattern A: Single State List with graft.slots\n'
-                '• The entire list shares one TaskListGraft.\n'
-                '• graft.slots diffs each item individually in RAM!\n'
-                '• Toggling a task rebuilds ONLY that 1 item — 0 rebuilds for the other items!',
+                '💡 Pattern A: 100% Lazy Virtualization with graft.builder & graft.item\n'
+                '• 100% Lazy & Virtualized: Only visible items are in RAM (scales to 10,000+ items)!\n'
+                '• Per-Item Diffing: Toggling a task rebuilds ONLY that 1 item — 0 rebuilds for other items!\n'
+                '• Universal: Use graft.builder for lists, or plug graft.item into GridView.builder / PageView.builder!',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
             ),
           ),
           Expanded(
-            child: graft.slots(
-              (children) => ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                children: children,
-              ),
-              (s) => [
-                for (final task in s.tasks)
-                  Card(
-                    child: ListTile(
-                      leading: Checkbox(
-                        value: task.isDone,
-                        onChanged: (_) => graft.toggleTask(task.id),
-                      ),
-                      title: Text(
-                        task.title,
-                        style: TextStyle(
-                          decoration:
-                              task.isDone ? TextDecoration.lineThrough : null,
-                          color: task.isDone ? Colors.grey : null,
-                        ),
-                      ),
-                      trailing: Chip(
-                        label: Text(task.isDone ? 'Done' : 'Pending'),
-                        backgroundColor: task.isDone
-                            ? Colors.green.shade100
-                            : Colors.amber.shade100,
+            child: graft.builder<TaskItem>(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              itemCount: (s) => s.tasks.length,
+              item: (s, index) => s.tasks[index],
+              itemBuilder: (context, task, index) {
+                return Card(
+                  child: ListTile(
+                    leading: Checkbox(
+                      value: task.isDone,
+                      onChanged: (_) => graft.toggleTask(task.id),
+                    ),
+                    title: Text(
+                      task.title,
+                      style: TextStyle(
+                        decoration:
+                            task.isDone ? TextDecoration.lineThrough : null,
+                        color: task.isDone ? Colors.grey : null,
                       ),
                     ),
+                    trailing: Chip(
+                      label: Text(task.isDone ? 'Done' : 'Pending'),
+                      backgroundColor: task.isDone
+                          ? Colors.green.shade100
+                          : Colors.amber.shade100,
+                    ),
                   ),
-              ],
+                );
+              },
             ),
           ),
         ],

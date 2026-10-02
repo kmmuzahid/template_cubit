@@ -673,11 +673,12 @@ class TaskGraft extends Graft<TaskState> {
   }
 }
 
-// 3. UI (Single graft.slot):
-graft.slot((s) => ListView.builder(
-  itemCount: s.tasks.length,
-  itemBuilder: (context, index) {
-    final task = s.tasks[index];
+// 3. UI with 100% Lazy Virtualization & Per-Item Diffing:
+// Option 1: graft.builder for ListView.builder (100% lazy, 1-rebuild item diffing):
+graft.builder<TaskItem>(
+  itemCount: (s) => s.tasks.length,
+  item: (s, index) => s.tasks[index],
+  itemBuilder: (context, task, index) {
     return ListTile(
       title: Text(task.title),
       trailing: Checkbox(
@@ -686,9 +687,21 @@ graft.slot((s) => ListView.builder(
       ),
     );
   },
-))
+)
+
+// Option 2: Universal graft.item adapter for GridView.builder, PageView.builder, or Slivers:
+GridView.builder(
+  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+  itemCount: graft.state.tasks.length,
+  itemBuilder: (context, index) {
+    return graft.item<TaskItem>(
+      (s) => s.tasks[index],
+      (ctx, task) => TaskCard(task: task),
+    );
+  },
+)
 ```
-*Because `ListView.builder` is virtualized, Flutter only mounts visible rows and reuses elements automatically.*
+*100% Lazy & Virtualized: Only visible items in the viewport are in memory. When a task is toggled, ONLY that specific item rebuilds in DevTools (0 rebuilds for all other items).*
 
 ---
 

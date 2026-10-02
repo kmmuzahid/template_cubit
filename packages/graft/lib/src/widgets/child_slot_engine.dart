@@ -689,6 +689,244 @@ class _GraftSingleSlotScopeState<S extends GraftState> extends State<GraftSingle
   }
 }
 
+/// A reactive item slot for lazy virtualized collections ([ListView.builder], [GridView.builder], [PageView.builder], etc.).
+///
+/// Only rebuilds when the value returned by [selector] changes.
+class GraftItemSlot<S extends GraftState, T> extends StatefulWidget implements GraftEquivalent {
+  /// The [Graft] instance providing state.
+  final Graft<S> graft;
+
+  /// Selector extracting the specific item slice [T] from state.
+  final T Function(S state) selector;
+
+  /// Widget builder called with the extracted [item].
+  final Widget Function(BuildContext context, T item) builder;
+
+  /// Creates a [GraftItemSlot] for fine-grained lazy item diffing.
+  const GraftItemSlot({
+    super.key,
+    required this.graft,
+    required this.selector,
+    required this.builder,
+  });
+
+  @override
+  bool isEquivalentTo(Widget other) {
+    if (other is! GraftItemSlot) return false;
+    return graft == other.graft && key == other.key;
+  }
+
+  @override
+  State<GraftItemSlot<S, T>> createState() => _GraftItemSlotState<S, T>();
+}
+
+class _GraftItemSlotState<S extends GraftState, T> extends State<GraftItemSlot<S, T>> {
+  T? _item;
+  Widget? _cachedWidget;
+  bool _hasInitialItem = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveInitialItem();
+    widget.graft.addListener(_onStateChange);
+  }
+
+  void _resolveInitialItem() {
+    try {
+      _item = widget.selector(widget.graft.state);
+      _hasInitialItem = true;
+    } catch (_) {
+      _hasInitialItem = false;
+    }
+  }
+
+  void _onStateChange() {
+    if (!mounted) return;
+    try {
+      final nextItem = widget.selector(widget.graft.state);
+      if (_hasInitialItem && (identical(_item, nextItem) || _item == nextItem)) {
+        return; // 0 REBUILDS!
+      }
+
+      final nextWidget = widget.builder(context, nextItem);
+      if (_cachedWidget != null &&
+          (identical(_cachedWidget, nextWidget) ||
+              GraftMultiChildDiffEngine.isWidgetEquivalent(_cachedWidget!, nextWidget, context))) {
+        _item = nextItem;
+        return; // 0 REBUILDS!
+      }
+
+      setState(() {
+        _item = nextItem;
+        _hasInitialItem = true;
+        _cachedWidget = nextWidget;
+      });
+    } catch (_) {
+      // Gracefully handle bounds exception if item was removed before element unmount
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant GraftItemSlot<S, T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.graft != widget.graft) {
+      oldWidget.graft.removeListener(_onStateChange);
+      _resolveInitialItem();
+      widget.graft.addListener(_onStateChange);
+      _cachedWidget = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.graft.removeListener(_onStateChange);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_hasInitialItem) {
+      _resolveInitialItem();
+    }
+    if (!_hasInitialItem) {
+      return const SizedBox.shrink();
+    }
+    _cachedWidget ??= widget.builder(context, _item as T);
+    return _cachedWidget!;
+  }
+}
+
+/// A 100% lazy, virtualized [ListView.builder] with per-item slot diffing.
+class GraftLazyListEngine<S extends GraftState, T> extends StatefulWidget implements GraftEquivalent {
+  /// The [Graft] controller providing collection state.
+  final Graft<S> graft;
+
+  /// Selector extracting the current total item count.
+  final int Function(S state) itemCount;
+
+  /// Selector extracting item [T] at [index].
+  final T Function(S state, int index) item;
+
+  /// Builder for each lazy item slot.
+  final Widget Function(BuildContext context, T item, int index) itemBuilder;
+
+  /// Optional separator builder for [ListView.separated].
+  final Widget Function(BuildContext context, int index)? separatorBuilder;
+
+  /// Optional padding for the inner [ListView].
+  final EdgeInsetsGeometry? padding;
+
+  /// Optional physics for the inner [ListView].
+  final ScrollPhysics? physics;
+
+  /// Whether the inner [ListView] should shrinkWrap.
+  final bool shrinkWrap;
+
+  /// Optional scroll controller.
+  final ScrollController? controller;
+
+  /// Creates a [GraftLazyListEngine].
+  const GraftLazyListEngine({
+    super.key,
+    required this.graft,
+    required this.itemCount,
+    required this.item,
+    required this.itemBuilder,
+    this.separatorBuilder,
+    this.padding,
+    this.physics,
+    this.shrinkWrap = false,
+    this.controller,
+  });
+
+  @override
+  bool isEquivalentTo(Widget other) {
+    if (other is! GraftLazyListEngine) return false;
+    return graft == other.graft && key == other.key;
+  }
+
+  @override
+  State<GraftLazyListEngine<S, T>> createState() => _GraftLazyListEngineState<S, T>();
+}
+
+class _GraftLazyListEngineState<S extends GraftState, T> extends State<GraftLazyListEngine<S, T>> {
+  late int _count;
+
+  @override
+  void initState() {
+    super.initState();
+    _count = widget.itemCount(widget.graft.state);
+    widget.graft.addListener(_onStateChange);
+  }
+
+  void _onStateChange() {
+    if (!mounted) return;
+    final nextCount = widget.itemCount(widget.graft.state);
+    if (_count != nextCount) {
+      setState(() {
+        _count = nextCount;
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant GraftLazyListEngine<S, T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.graft != widget.graft) {
+      oldWidget.graft.removeListener(_onStateChange);
+      _count = widget.itemCount(widget.graft.state);
+      widget.graft.addListener(_onStateChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.graft.removeListener(_onStateChange);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.separatorBuilder != null) {
+      return ListView.separated(
+        key: widget.key,
+        padding: widget.padding,
+        physics: widget.physics,
+        shrinkWrap: widget.shrinkWrap,
+        controller: widget.controller,
+        itemCount: _count,
+        separatorBuilder: widget.separatorBuilder!,
+        itemBuilder: (context, index) {
+          return GraftItemSlot<S, T>(
+            key: ValueKey(index),
+            graft: widget.graft,
+            selector: (s) => widget.item(s, index),
+            builder: (ctx, item) => widget.itemBuilder(ctx, item, index),
+          );
+        },
+      );
+    }
+
+    return ListView.builder(
+      key: widget.key,
+      padding: widget.padding,
+      physics: widget.physics,
+      shrinkWrap: widget.shrinkWrap,
+      controller: widget.controller,
+      itemCount: _count,
+      itemBuilder: (context, index) {
+        return GraftItemSlot<S, T>(
+          key: ValueKey(index),
+          graft: widget.graft,
+          selector: (s) => widget.item(s, index),
+          builder: (ctx, item) => widget.itemBuilder(ctx, item, index),
+        );
+      },
+    );
+  }
+}
+
 /// Internal guard that tracks active builder executions to detect and prevent anti-pattern nesting.
 abstract final class GraftScopeGuard {
   static final Set<Graft> _activeBuilders = {};
