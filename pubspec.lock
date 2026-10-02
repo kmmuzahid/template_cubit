@@ -712,7 +712,7 @@ packages:
   graft:
     dependency: "direct main"
     description:
-      path: "packages/graft"
+      path: "../graft"
       relative: true
     source: path
     version: "0.0.1"

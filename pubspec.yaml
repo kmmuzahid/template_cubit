@@ -16,7 +16,7 @@ dependencies:
   auto_route: 
   flutter_bloc:
   graft:
-    path: packages/graft
+    path: ../graft
   get_it:
   # flutter_secure_storage:
   # shared_preferences:
