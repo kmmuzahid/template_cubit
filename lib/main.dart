@@ -1,4 +1,3 @@
-import 'package:core_kit/core_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:graft/graft.dart';
 
@@ -311,7 +310,6 @@ class HomeScreen extends StatelessWidget {
             graft.slots(
               (children) => Column(children: children),
               (s) => [
-                CkTextField(validationType: .notRequired),
                 // Const widget: Flutter skips re-rendering entirely (0 rebuilds)
                 const Card(
                   color: Colors.deepPurple,

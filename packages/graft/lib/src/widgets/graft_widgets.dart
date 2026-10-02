@@ -301,6 +301,12 @@ class _GraftComputationState<S extends GraftState, R> extends State<_GraftComput
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    _onStateChange();
+  }
+
+  @override
   void didUpdateWidget(covariant _GraftComputation<S, R> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.graft != widget.graft) {
@@ -311,6 +317,8 @@ class _GraftComputationState<S extends GraftState, R> extends State<_GraftComput
         () => widget.computation(widget.graft.state),
       );
       widget.graft.addListener(_onStateChange);
+    } else {
+      _onStateChange();
     }
   }
 

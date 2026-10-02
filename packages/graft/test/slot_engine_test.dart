@@ -867,6 +867,116 @@ void main() {
 
     graft.dispose();
   });
+
+  testWidgets(
+      'graft.slots reassemble removes deleted child slot immediately on hot reload',
+      (tester) async {
+    final graft = ProfileGraft();
+    bool showMiddleSlot = true;
+
+    Widget buildApp() {
+      return MaterialApp(
+        home: Scaffold(
+          body: graft.slots(
+            (children) => Column(children: children),
+            (s) => [
+              const Text('Slot 1: Header'),
+              if (showMiddleSlot) const Text('Slot 2: Removable Widget'),
+              Text('Slot 3: ${s.name}'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildApp());
+    expect(find.text('Slot 1: Header'), findsOneWidget);
+    expect(find.text('Slot 2: Removable Widget'), findsOneWidget);
+    expect(find.text('Slot 3: Alice'), findsOneWidget);
+
+    // Simulate developer deleting Slot 2 in source code and pressing Hot Reload ('r')
+    showMiddleSlot = false;
+    await tester.pumpWidget(buildApp());
+    tester.binding.reassembleApplication();
+    await tester.pump();
+
+    // Verify Slot 2 is completely removed from the UI tree
+    expect(find.text('Slot 1: Header'), findsOneWidget);
+    expect(find.text('Slot 2: Removable Widget'), findsNothing);
+    expect(find.text('Slot 3: Alice'), findsOneWidget);
+
+    // Verify state reactivity is still 100% operational
+    graft.updateName('Bob');
+    await tester.pump();
+    expect(find.text('Slot 3: Bob'), findsOneWidget);
+
+    graft.dispose();
+  });
+
+  testWidgets(
+      'graft.slot reassemble reflects modified slot code immediately on hot reload',
+      (tester) async {
+    final graft = ProfileGraft();
+    String prefix = 'V1: ';
+
+    Widget buildApp() {
+      return MaterialApp(
+        home: Scaffold(
+          body: graft.slot(
+            (s) => Text('$prefix${s.name}'),
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildApp());
+    expect(find.text('V1: Alice'), findsOneWidget);
+
+    // Simulate code edit in builder and hot reload
+    prefix = 'V2: ';
+    await tester.pumpWidget(buildApp());
+    tester.binding.reassembleApplication();
+    await tester.pump();
+
+    expect(find.text('V2: Alice'), findsOneWidget);
+
+    graft.dispose();
+  });
+
+  testWidgets(
+      'graft.builder reassemble reflects modified item code immediately on hot reload',
+      (tester) async {
+    final graft = ProfileGraft();
+    String prefix = 'Name: ';
+
+    Widget buildApp() {
+      return MaterialApp(
+        home: Scaffold(
+          body: graft.builder<String>(
+            (itemCount, itemBuilder) => ListView.builder(
+              itemCount: itemCount,
+              itemBuilder: itemBuilder,
+            ),
+            items: (s) => [s.name],
+            itemBuilder: (context, name, index) => Text('$prefix$name'),
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildApp());
+    expect(find.text('Name: Alice'), findsOneWidget);
+
+    // Simulate code edit in itemBuilder and hot reload
+    prefix = 'Item: ';
+    await tester.pumpWidget(buildApp());
+    tester.binding.reassembleApplication();
+    await tester.pump();
+
+    expect(find.text('Item: Alice'), findsOneWidget);
+
+    graft.dispose();
+  });
 }
 
 class MockCompositeText extends StatelessWidget {

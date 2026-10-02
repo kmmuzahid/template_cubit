@@ -486,6 +486,12 @@ class _GraftMultiChildDiffEngineState<S extends GraftState>
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    _onStateChanged();
+  }
+
+  @override
   void didUpdateWidget(covariant GraftMultiChildDiffEngine<S> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.graft != widget.graft) {
@@ -493,6 +499,8 @@ class _GraftMultiChildDiffEngineState<S extends GraftState>
       _disposeSlots();
       _initSlots();
       widget.graft.addListener(_onStateChanged);
+    } else {
+      _onStateChanged();
     }
   }
 
@@ -723,6 +731,12 @@ class _GraftSingleSlotScopeState<S extends GraftState> extends State<GraftSingle
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    _onStateChanged();
+  }
+
+  @override
   void didUpdateWidget(covariant GraftSingleSlotScope<S> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.graft != widget.graft) {
@@ -733,6 +747,8 @@ class _GraftSingleSlotScopeState<S extends GraftState> extends State<GraftSingle
         () => widget.builder(widget.graft.state),
       );
       widget.graft.addListener(_onStateChanged);
+    } else {
+      _onStateChanged();
     }
   }
 
@@ -851,12 +867,24 @@ class _GraftItemSlotState<S extends GraftState, T> extends State<GraftItemSlot<S
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    _resolveInitialItem();
+    _cachedWidget = null;
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void didUpdateWidget(covariant GraftItemSlot<S, T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.graft != widget.graft) {
       oldWidget.graft.removeListener(_onStateChange);
       _resolveInitialItem();
       widget.graft.addListener(_onStateChange);
+      _cachedWidget = null;
+    } else {
       _cachedWidget = null;
     }
   }
@@ -956,12 +984,23 @@ class _GraftBuilderDiffEngineState<S extends GraftState, T>
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    _count = widget.itemCount(widget.graft.state);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void didUpdateWidget(covariant GraftBuilderDiffEngine<S, T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.graft != widget.graft) {
       oldWidget.graft.removeListener(_onStateChange);
       _count = widget.itemCount(widget.graft.state);
       widget.graft.addListener(_onStateChange);
+    } else {
+      _onStateChange();
     }
   }
 
