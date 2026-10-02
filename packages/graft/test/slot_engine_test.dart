@@ -660,7 +660,7 @@ void main() {
     graftB.dispose();
   });
 
-  testWidgets('graft.builder virtualizes list and isolates item rebuilds', (tester) async {
+  testWidgets('graft.builder virtualizes list and isolates item rebuilds with layout callback', (tester) async {
     final graft = ProfileGraft();
     int buildCountAlice = 0;
     int buildCountBob = 0;
@@ -669,8 +669,11 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: graft.builder<String>(
-            itemCount: (s) => 2,
-            item: (s, index) => index == 0 ? s.name : s.email,
+            (itemCount, itemBuilder) => ListView.builder(
+              itemCount: itemCount,
+              itemBuilder: itemBuilder,
+            ),
+            items: (s) => [s.name, s.email],
             itemBuilder: (context, val, index) {
               if (index == 0) buildCountAlice++;
               if (index == 1) buildCountBob++;
@@ -694,6 +697,48 @@ void main() {
     expect(find.text('Item 1: alice@example.com'), findsOneWidget);
     expect(buildCountAlice, 2);
     expect(buildCountBob, 1, reason: 'Item 1 was not modified and must have 0 rebuilds');
+
+    graft.dispose();
+  });
+
+  testWidgets('graft.builder works with GridView.builder and isolated item rebuilds', (tester) async {
+    final graft = ProfileGraft();
+    int buildCount0 = 0;
+    int buildCount1 = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: graft.builder<String>(
+            (itemCount, itemBuilder) => GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+              itemCount: itemCount,
+              itemBuilder: itemBuilder,
+            ),
+            items: (s) => [s.name, s.email],
+            itemBuilder: (context, val, index) {
+              if (index == 0) buildCount0++;
+              if (index == 1) buildCount1++;
+              return Text('Grid $index: $val');
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Grid 0: Alice'), findsOneWidget);
+    expect(find.text('Grid 1: alice@example.com'), findsOneWidget);
+    expect(buildCount0, 1);
+    expect(buildCount1, 1);
+
+    // Update name -> Grid 0 rebuilds, Grid 1 stays at 0 rebuilds
+    graft.updateName('Dana');
+    await tester.pump();
+
+    expect(find.text('Grid 0: Dana'), findsOneWidget);
+    expect(find.text('Grid 1: alice@example.com'), findsOneWidget);
+    expect(buildCount0, 2);
+    expect(buildCount1, 1, reason: 'Grid 1 was not modified and must have 0 rebuilds');
 
     graft.dispose();
   });

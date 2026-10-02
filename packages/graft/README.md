@@ -642,7 +642,7 @@ userGraft.slots(
 
 ---
 
-## 📜 Working with Lists (`ListView.builder`)
+## 📜 Working with Lists (`ListView.builder, GridView.builder, PageView.builder etc`)
 
 Flutter's `ListView.builder` is a virtualized, on-demand scrolling widget. Graft supports both standard single-graft lists and extreme per-item micro-state lists:
 
@@ -674,10 +674,14 @@ class TaskGraft extends Graft<TaskState> {
 }
 
 // 3. UI with 100% Lazy Virtualization & Per-Item Diffing:
-// Option 1: graft.builder for ListView.builder (100% lazy, 1-rebuild item diffing):
+// Option 1: graft.builder for ANY collection builder (ListView, GridView, PageView, Slivers):
 graft.builder<TaskItem>(
-  itemCount: (s) => s.tasks.length,
-  item: (s, index) => s.tasks[index],
+  (itemCount, itemBuilder) => ListView.builder(
+    padding: const EdgeInsets.all(8),
+    itemCount: itemCount,
+    itemBuilder: itemBuilder,
+  ),
+  items: (s) => s.tasks,
   itemBuilder: (context, task, index) {
     return ListTile(
       title: Text(task.title),
@@ -689,7 +693,18 @@ graft.builder<TaskItem>(
   },
 )
 
-// Option 2: Universal graft.item adapter for GridView.builder, PageView.builder, or Slivers:
+// Option 2: Works with GridView.builder just as easily:
+graft.builder<Product>(
+  (itemCount, itemBuilder) => GridView.builder(
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+    itemCount: itemCount,
+    itemBuilder: itemBuilder,
+  ),
+  items: (s) => s.products,
+  itemBuilder: (context, product, index) => ProductCard(product: product),
+)
+
+// Option 3: Universal graft.item adapter if building custom delegate directly:
 GridView.builder(
   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
   itemCount: graft.state.tasks.length,

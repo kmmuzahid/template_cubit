@@ -698,9 +698,12 @@ class StandardListScreen extends StatelessWidget {
           ),
           Expanded(
             child: graft.builder<TaskItem>(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              itemCount: (s) => s.tasks.length,
-              item: (s, index) => s.tasks[index],
+              (itemCount, itemBuilder) => ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemCount: itemCount,
+                itemBuilder: itemBuilder,
+              ),
+              items: (s) => s.tasks,
               itemBuilder: (context, task, index) {
                 return Card(
                   child: ListTile(

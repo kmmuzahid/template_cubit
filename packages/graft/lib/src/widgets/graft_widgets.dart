@@ -159,35 +159,69 @@ extension GraftWidgetsX<S extends GraftState> on Graft<S> {
   // 4. LAZY BUILDER & VIRTUALIZED COLLECTIONS
   // ===========================================================================
 
-  /// Creates a 100% lazy, virtualized [ListView.builder] with per-item slot diffing.
+  /// Creates a 100% lazy, virtualized collection with per-item slot diffing.
   ///
-  /// - **100% Viewport Virtualization**: Offscreen items are not kept in memory.
-  /// - **Per-Item Diffing**: Toggling an item rebuilds **ONLY that specific item** in DevTools.
-  /// - **Unchanged items**: **0 rebuilds**!
-  /// - Works directly with your standard domain model without needing `ValueGraft`.
-  Widget builder<T>({
-    required int Function(S state) itemCount,
-    required T Function(S state, int index) item,
+  /// Works with **ANY** Flutter builder widget:
+  /// - [ListView.builder] / [ListView.separated]
+  /// - [GridView.builder]
+  /// - [PageView.builder]
+  /// - [SliverList.builder] / [SliverGrid.builder]
+  /// - [CarouselView]
+  ///
+  /// ### How it works:
+  /// - **Layout Agnostic**: The [layout] function receives `(itemCount, itemBuilder)`.
+  ///   You pass standard Flutter widgets without any wrapper interference.
+  /// - **100% Automated**: Pass `items: (s) => s.tasks` once. The engine automatically derives
+  ///   `itemCount` and indexes each item.
+  /// - **Fine-Grained Isolation**: Unchanged items have **0 rebuilds**. Only the modified item rebuilds (**1 rebuild**)!
+  ///
+  /// ### Example (ListView):
+  /// ```dart
+  /// graft.builder<TaskItem>(
+  ///   (itemCount, itemBuilder) => ListView.builder(
+  ///     padding: const EdgeInsets.all(8),
+  ///     itemCount: itemCount,
+  ///     itemBuilder: itemBuilder,
+  ///   ),
+  ///   items: (s) => s.tasks,
+  ///   itemBuilder: (context, task, index) => TaskListTile(task: task),
+  /// )
+  /// ```
+  ///
+  /// ### Example (GridView):
+  /// ```dart
+  /// graft.builder<Product>(
+  ///   (itemCount, itemBuilder) => GridView.builder(
+  ///     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+  ///     itemCount: itemCount,
+  ///     itemBuilder: itemBuilder,
+  ///   ),
+  ///   items: (s) => s.products,
+  ///   itemBuilder: (context, product, index) => ProductGridTile(product: product),
+  /// )
+  /// ```
+  Widget builder<T>(
+    Widget Function(int itemCount, NullableIndexedWidgetBuilder itemBuilder) layout, {
+    List<T> Function(S state)? items,
+    int Function(S state)? itemCount,
+    T Function(S state, int index)? item,
     required Widget Function(BuildContext context, T item, int index) itemBuilder,
+    Key Function(T item, int index)? itemKey,
     Key? key,
-    Widget Function(BuildContext context, int index)? separatorBuilder,
-    EdgeInsetsGeometry? padding,
-    ScrollPhysics? physics,
-    bool shrinkWrap = false,
-    ScrollController? controller,
   }) {
+    assert(
+      items != null || (itemCount != null && item != null),
+      'Either provide `items: (s) => ...` or both `itemCount` and `item`.',
+    );
     GraftScopeGuard.verifyNotActive(this, 'graft.builder');
-    return GraftLazyListEngine<S, T>(
+    return GraftBuilderDiffEngine<S, T>(
       key: key,
       graft: this,
-      itemCount: itemCount,
-      item: item,
+      layout: layout,
+      itemCount: itemCount ?? ((s) => items!(s).length),
+      item: item ?? ((s, i) => items!(s)[i]),
       itemBuilder: itemBuilder,
-      separatorBuilder: separatorBuilder,
-      padding: padding,
-      physics: physics,
-      shrinkWrap: shrinkWrap,
-      controller: controller,
+      itemKey: itemKey,
     );
   }
 
