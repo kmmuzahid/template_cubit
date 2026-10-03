@@ -23,11 +23,11 @@ class SplashScreen extends StatelessWidget {
       padding: EdgeInsets.zero,
       body: Center(
         child: graft.slots(
-          (children) => Column(
+          layout: (children) => Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: children,
           ),
-          (state) => [
+          children: (state) => [
             Container(
               padding: EdgeInsets.all(24.w),
               decoration: BoxDecoration(
@@ -55,6 +55,15 @@ class SplashScreen extends StatelessWidget {
             ),
             40.height,
             Container(color: Colors.red, child: Text(state.name)),
+            graft.slot(builder: (state) => Text(state.name)),
+            Container(
+              child: counterGraft.slot(
+                builder: (s) => Text(
+                  'fff ${s.count.toString()}',
+                  style: TextStyle(color: Colors.amber),
+                ),
+              ),
+            ),
             // App Name
             CkText(
               text: state.name,
@@ -105,9 +114,9 @@ class SplashScreen extends StatelessWidget {
               color: Colors.red,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: counterGraft.slots(
-                (children) =>
+                layout: (children) =>
                     Row(mainAxisSize: MainAxisSize.min, children: children),
-                (counterState) => [
+                children: (counterState) => [
                   Text(
                     'Counter: ${counterState.count}',
                     style: const TextStyle(

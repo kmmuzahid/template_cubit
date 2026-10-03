@@ -23,12 +23,14 @@ class InfoScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 10.w),
-        child: graft.slot((state) {
-          if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return CkText(text: state.content);
-        }),
+        child: graft.slot(
+          builder: (state) {
+            if (state.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return CkText(text: state.content);
+          },
+        ),
       ),
     );
   }
