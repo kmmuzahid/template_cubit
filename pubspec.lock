@@ -768,19 +768,17 @@ packages:
   graft:
     dependency: "direct main"
     description:
-      name: graft
-      sha256: "8ceb6e828d82f99c10deaca9d93ac3e70c00636e8db5dfd1fe6902f1feca51cd"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.0-alpha.1"
+      path: "../graft"
+      relative: true
+    source: path
+    version: "0.1.2-alpha.1"
   graft_lint:
     dependency: "direct dev"
     description:
-      name: graft_lint
-      sha256: a6d33c561795d18c6330da0cf32f484fad251b11551500b4f22032becd774a80
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.0-alpha.1"
+      path: "../graft/packages/graft_lint"
+      relative: true
+    source: path
+    version: "0.1.2-alpha.1"
   graphs:
     dependency: transitive
     description:

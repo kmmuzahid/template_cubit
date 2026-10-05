@@ -55,7 +55,7 @@ class SplashScreen extends StatelessWidget {
             ),
             40.height,
             Container(color: Colors.red, child: Text(state.name)),
-            graft.slot(builder: (state) => Text(state.name)),
+            // graft.slot(builder: (state) => Text(state.name)),
             Container(
               child: counterGraft.slot(
                 builder: (s) => Text(

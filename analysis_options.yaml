@@ -10,7 +10,6 @@
 analyzer:
   errors:
     analysis_options_deprecated_plugins: ignore
- 
   plugins:
     - custom_lint
   exclude:
@@ -42,6 +41,7 @@ linter:
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
 custom_lint:
+  debug: true
   rules:
-    - avoid_nested_graft_slot: error
-    - require_graft_route_observer: info 
+    - avoid_nested_graft_slot: true
+    - require_graft_route_observer: true 

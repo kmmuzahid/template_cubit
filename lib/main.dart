@@ -17,6 +17,9 @@ class UserState extends GraftState {
     this.isVerified = true,
     this.notificationCount = 3,
   });
+
+  @override
+  List<Object?> get props => [name, email, isVerified, notificationCount];
 }
 
 // =============================================================================
@@ -64,7 +67,7 @@ class UserGraft extends Graft<UserState> {
       ..email = email
       ..isVerified = isVerified
       ..notificationCount = notifications
-      ..update(); // 💥 All 4 fields updated in 1 single pass!
+      ..update(); // 💥 All 4 fields updated in 1 single atomic pass!
   }
 }
 
@@ -82,6 +85,9 @@ class TaskItem {
 class TaskListState extends GraftState {
   List<TaskItem> tasks;
   TaskListState({required this.tasks});
+
+  @override
+  List<Object?> get props => [tasks];
 }
 
 class TaskListGraft extends Graft<TaskListState> {
@@ -154,6 +160,9 @@ class ProductCatalogState extends GraftState {
   bool isLoading;
 
   ProductCatalogState({this.products = const [], this.isLoading = true});
+
+  @override
+  List<Object?> get props => [products, isLoading];
 }
 
 class ProductCatalogGraft extends Graft<ProductCatalogState> {
@@ -200,6 +209,14 @@ class ProductCatalogGraft extends Graft<ProductCatalogState> {
 class LiveCounterState extends GraftState {
   int count;
   LiveCounterState({this.count = 0});
+
+  @override
+  List<Object?> get props => [count];
+
+  @override
+  void onReset() {
+    count = 0;
+  }
 }
 
 class LiveCounterGraft extends Graft<LiveCounterState> {
@@ -214,12 +231,6 @@ class LiveCounterGraft extends Graft<LiveCounterState> {
   void decrement() {
     state
       ..count -= 1
-      ..update();
-  }
-
-  void reset() {
-    state
-      ..count = 0
       ..update();
   }
 }
@@ -272,8 +283,9 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Looks in route stack; if not found, creates new instance & owns it:
-    final graft = context.use<UserGraft>();
+    // Auto-instantiates and borrows across the navigation stack:
+    final graft = context.use(UserGraft.new);
+    final counter = context.use(LiveCounterGraft.new);
 
     return Scaffold(
       appBar: AppBar(
@@ -327,7 +339,7 @@ class HomeScreen extends StatelessWidget {
 
                 // Slot 1: Name
                 ListTile(
-                  leading: const Icon(Icons.person, color: Colors.deepPurple),
+                  leading: Icon(Icons.person, color: Colors.deepPurple),
                   title: Text('Name: ${s.name}'),
                   subtitle: const Text('Rebuilds ONLY when name changes'),
                 ),
@@ -441,10 +453,48 @@ class HomeScreen extends StatelessWidget {
             const Divider(),
 
             // =================================================================
-            // Route-Stack Sharing & Lifecycle
+            // 3. GraftBoundary: Ambient Auto-Discovery & Insulation
             // =================================================================
             const _SectionHeader(
-              title: '3. Route-Stack Lifecycle & Inheritance',
+              title:
+                  '3. GraftBoundary: Multi-Graft Auto-Discovery & Insulation',
+              subtitle: 'Ambiently auto-discovers multiple Grafts with zero manual lists and full rebuild insulation: GraftBoundary(builder: (context) => ...)',
+            ),
+            const SizedBox(height: 8),
+
+            _HeavyShellContainer(
+              child: GraftBoundary(
+                builder: (context) => Row(
+                  children: [
+                    const Icon(Icons.hub_outlined, color: Colors.deepPurple),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'User: ${graft.state.name}  •  Count: ${counter.state.count}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.add_circle,
+                        color: Colors.deepPurple,
+                      ),
+                      tooltip: 'Increment Counter from Multi-Graft Boundary',
+                      onPressed: () => counter.increment(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+            const Divider(),
+
+            // =================================================================
+            // 4. Route-Stack Sharing & Lifecycle
+            // =================================================================
+            const _SectionHeader(
+              title: '4. Route-Stack Lifecycle & Inheritance',
               subtitle: 'Pushed screens borrow the active Graft. Disposed when owner pops.',
             ),
             const SizedBox(height: 12),
@@ -1067,6 +1117,78 @@ class _SectionHeader extends StatelessWidget {
           style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
         ),
       ],
+    );
+  }
+}
+
+class _HeavyShellContainer extends StatefulWidget {
+  final Widget child;
+  const _HeavyShellContainer({required this.child});
+
+  @override
+  State<_HeavyShellContainer> createState() => _HeavyShellContainerState();
+}
+
+class _HeavyShellContainerState extends State<_HeavyShellContainer> {
+  int _buildCount = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    _buildCount++;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.deepPurple.shade200, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.deepPurple.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '🛡️ Outer Parent Container',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _buildCount == 1
+                      ? Colors.green.shade100
+                      : Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Parent Builds: $_buildCount (Locked!)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _buildCount == 1
+                        ? Colors.green.shade800
+                        : Colors.red.shade800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'This parent container NEVER rebuilds when child state updates:',
+            style: TextStyle(fontSize: 13, color: Colors.black54),
+          ),
+          const Divider(height: 20),
+          widget.child,
+        ],
+      ),
     );
   }
 }

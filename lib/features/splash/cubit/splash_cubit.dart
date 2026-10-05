@@ -8,11 +8,9 @@ class SplashCubit extends Graft<ChildSplashCubit> {
   void init() async {
     await Future.delayed(const Duration(seconds: 1));
     state
-      ..name = "Km Muzahid" 
+      ..name = "Km Muzahid"
       ..time = 1
       ..update();
-
-    
 
     await Future.delayed(const Duration(seconds: 1));
     Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -28,4 +26,7 @@ class ChildSplashCubit extends GraftState {
   int time;
 
   ChildSplashCubit({required this.name, required this.time});
+
+  @override
+  List<Object?> get props => [name, time];
 }

@@ -12,11 +12,11 @@ dependencies:
   core_kit: ^1.1.4
   # core_kit:
   #   path: /Users/km/Documents/Km Muzahid/flutter_core_kit
-  graft: ^0.1.0-alpha.1
+  # graft: ^0.1.1-alpha.1
   auto_route: 
   flutter_bloc:
-  # graft:
-  #   path: ../graft
+  graft:
+    path: ../graft
   get_it:
   # flutter_secure_storage:
   # shared_preferences:
@@ -42,7 +42,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter 
   custom_lint: ^0.8.1
-  graft_lint: ^0.1.0-alpha.1
+  graft_lint:
+    path: ../graft/packages/graft_lint
 
   # core_kit_lints:
   #   path: ../core_kit/tools/custom_lint

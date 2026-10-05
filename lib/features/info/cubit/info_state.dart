@@ -7,4 +7,7 @@ class InfoState extends GraftState {
   String content;
 
   InfoState({this.isLoading = false, this.content = ''});
+
+  @override
+  List<Object?> get props => [isLoading, content];
 }
